@@ -14,10 +14,12 @@ class SlackError(Exception):
 class SlackAPI(object):
     API_URL = 'https://slack.com/api/'
 
+    def __init__(self, bot):
+        self._bot = bot
+        self._listeners = []
+
     def start_listening(self, listener):
-        t = threading.Thread(target=self._receiver, args=(listener, ))
-        t.setDaemon(True)
-        t.start()
+        self._listeners.append(listener)
 
     def connect(self):
         url = "{}rtm.start".format(SlackAPI.API_URL)
@@ -26,32 +28,37 @@ class SlackAPI(object):
         if not self._request_data['ok']:
             raise SlackError(self._request_data['error'])
 
-        self.users = {v[u'id']: v for v in self._request_data.pop(u'users')}
-        self._channels = self._request_data.pop(u'channels')
-        self._ws_connection = websocket.create_connection(self._request_data['url'])
+        _ims = self._request_data[u'ims']
+        self._bot.users = {v[u'id']: v for v in self._request_data.pop(u'users')}
+        for user_id, user in self._bot.users.iteritems():
+            user[u'im'] = next((im[u'id'] for im in _ims if im[u'user'] == user_id), None)
+        self._bot._channels = self._request_data.pop(u'channels')
+        _self = self._request_data.pop(u'self')
+        self._bot.user_name = _self[u'name']
+        self._bot.user = _self[u'id']
 
-    def get_nick(self, user_id):
-        try:
-            return self.users[user_id][u'name']
-        except TypeError:
-            return None
+        self._connect_websocket(self._request_data['url'])
 
-    def get_channel_id(self, name):
-        channel = next((c for c in self._channels if c[u'name'] == name), None)
-        if channel:
-            return channel[u'id']
-        return None
+    def _connect_websocket(self, url):
+        self._ws = websocket.WebSocketApp(
+            url,
+            on_message=self._on_receive,
+            on_error=self._on_ws_error,
+        )
 
-    def get_channel_name(self, channel_id):
-        channel = next((c for c in self._channels if c[u'id'] == channel_id), None)
-        if channel:
-            return channel[u'name']
-        return None
+        t = threading.Thread(target=self._ws.run_forever)
+        t.setDaemon(True)
+        t.start()
 
-    def _receiver(self, listener):
-        while 1:
-            response = json.loads(self._ws_connection.recv())
+    def _on_ws_error(self, ws, error):
+        print error
+        print "Reconnecting..."
+        self.connect()
+
+    def _on_receive(self, ws, message):
+        response = json.loads(message)
+        for listener in self._listeners:
             listener(response)
 
     def send(self, payload):
-        self._ws_connection.send(json.dumps(payload))
+        self._ws.send(json.dumps(payload))

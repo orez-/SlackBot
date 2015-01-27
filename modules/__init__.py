@@ -1,7 +1,6 @@
+import functools
 import re
 import time
-
-import config
 
 
 def valid_regex(regex):
@@ -12,14 +11,16 @@ def valid_regex(regex):
     else:
         return True
 
+UNSET = object()
+
 
 class BotCommand(object):
     RULE_VERSION = 0
 
     def __init__(
             self, fn,
-            rule=None, actions=["message"], priority=0, sender=None,
-            ttl=False, activations=False):
+            rule=UNSET, actions=["message"], priority=0, sender=None,
+            ttl=False, activations=False, fields=None):
         self._fn = fn
 
         self._rule = rule  # unmodified base rule, for reference
@@ -41,6 +42,9 @@ class BotCommand(object):
         else:
             self.activations = False
 
+        self.fields = fields or {}
+        functools.update_wrapper(self, fn)
+
     @property
     def sender(self):
         """
@@ -48,7 +52,7 @@ class BotCommand(object):
         If the regex does not exist, generates it.
         """
         if self._compiled_sender is None:
-            if isinstance(self._sender, str):
+            if isinstance(self._sender, basestring):
                 sender = self._sender
             elif isinstance(self._sender, list):
                 if not all(map(valid_regex, self._sender)):
@@ -66,28 +70,42 @@ class BotCommand(object):
         """
         Get the regex that matches input on which to trigger.
         If the regex does not exist or is out of date, generates it.
+
+        $bot - Bot nick
+        $@bot - Bot ping
         """
+        if self._rule is UNSET:
+            return UNSET
         if self._compiled_rule is None or self._rule_version != BotCommand.RULE_VERSION:
             if self._rule is None:
                 rule = r".*"
-            elif isinstance(self._rule, str):
+            elif isinstance(self._rule, basestring):
                 rule = self._rule
             elif isinstance(self._rule, list):
                 rule = r'\s+'.join(self._rule)
             else:
                 raise ValueError("invalid rule format")
+
+            for keyword, replacement in [
+                    ("$bot", self.bot.user_name),
+                    ("$@bot", "<@{}>".format(self.bot.user))]:
+                rule = rule.replace(keyword, replacement)
+
             self._rule_version = BotCommand.RULE_VERSION
             self._compiled_rule = re.compile(rule)
         return self._compiled_rule
 
-    def matches(self, msg):
+    def matches(self, bot, msg):
         """Determine if the given message should trigger this command."""
         # If action is PING sender is None, safe to fall through.
         # if not (msg.sender is None or self.sender.match(msg.sender)):
         #     return False
+        self.bot = bot
         if msg.get('type') not in self.actions:
             return False
-        return self.rule.match(msg['text'])
+        if self.rule is not UNSET:
+            return self.rule.match(msg['text'])
+        return re.match("", "")
 
     def __call__(self, bot, msg, *args):
         """Run the command's function."""
@@ -111,8 +129,6 @@ class register(object):
             new_func.registered = True
             if 'name' in kwargs:
                 new_func.__name__ = kwargs['name']
-            else:
-                new_func.__name__ = fn.__name__
             module_id = fn.__module__.split(".")[-1]
             new_func.module_id = module_id
             register.modules.setdefault(module_id, set()).add(new_func)
@@ -141,27 +157,3 @@ class register(object):
             return False
         module.remove(command)
         return True
-
-
-def require_auth(*args):
-    """
-    Require authorization. Can be used as a decorator or called within
-    a function.
-    """
-    admins = config.admins  # TODO: admins, ensuring login
-    def anon(bot, msg, *args):
-        if msg.nick.lower() not in admins:
-            return bot.reply("Auth Required.")
-        return fn(bot, msg, *args)
-    if len(args) == 1:  # Decorator
-        fn, = args
-        anon.__name__ = fn.__name__
-        anon.__module__ = fn.__module__
-        anon.__doc__ = fn.__doc__
-        return anon
-    elif len(args) == 2:  # Within-function call
-        bot, msg = args
-        return msg.nick in admins
-    elif len(args) > 2:
-        raise TypeError("require_auth() takes at most 2 arguments (%d given)" % len(args))
-    raise TypeError("require_auth() takes at least 1 argument (0 given)")

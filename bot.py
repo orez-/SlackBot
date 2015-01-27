@@ -1,11 +1,12 @@
 import imp
 import os
 import Queue
-import re
+import sys
 import threading
 import time
 import traceback
 
+import config
 import modules
 import slack
 
@@ -18,7 +19,7 @@ class _SlackBotWrapper(object):
         self._msg = msg
 
     def reply(self, message):
-        self.send(message, self._msg[u'channel_name'])
+        self.say(message, self._msg[u'channel'])
 
     def __getattr__(self, other):
         """Default to _bot's methods"""
@@ -29,15 +30,16 @@ class SlackBot(object):
     def __init__(self):
         self._incoming_messages = Queue.Queue()
 
-        self._slack_api = slack.SlackAPI()
+        self._slack_api = slack.SlackAPI(self)
         self._slack_api.connect()
         self._slack_api.start_listening(self._listener)
-        t = threading.Thread(target=self._dispatcher)
-        t.setDaemon(True)
-        t.start()
 
         self.commands = []
         self.load_all_modules()
+
+        t = threading.Thread(target=self._dispatcher)
+        t.setDaemon(True)
+        t.start()
 
     def _listener(self, message):
         """
@@ -46,10 +48,17 @@ class SlackBot(object):
         """
         self._incoming_messages.put(message)
 
-    def send(self, text, channel):
+    def parse_destination(self, destination):
+        if destination[0] == "#":
+            return self.get_channel_id(destination[1:])
+        elif destination[0] == "@":
+            return self.get_user_im(destination[1:])
+        return destination
+
+    def say(self, text, channel):
         if not text:
             return
-        channel = self._slack_api.get_channel_id(channel)
+        channel = self.parse_destination(channel)
         message = dict(
             type="message",
             channel=channel,
@@ -59,10 +68,9 @@ class SlackBot(object):
 
     def _format_incoming(self, incoming):
         if u'channel' in incoming:
-            incoming[u'channel_name'] = self._slack_api.get_channel_name(
-                incoming[u'channel'])
+            incoming[u'channel_name'] = self.get_channel_name(incoming[u'channel'])
         if u'user' in incoming:
-            username = self._slack_api.get_nick(incoming[u'user'])
+            username = self.get_nick(incoming[u'user'])
             if username:
                 incoming[u'user_name'] = username
 
@@ -80,7 +88,7 @@ class SlackBot(object):
                     if command.deadline is not False and command.deadline < now:
                         self.unregister_command(command)  # silently remove him
                         continue
-                    match = command.matches(response)
+                    match = command.matches(self, response)
                     if match:
                         command(_SlackBotWrapper(self, response), response, *match.groups())
                         if command.activations is not False and command.activations <= 0:
@@ -91,9 +99,26 @@ class SlackBot(object):
             else:
                 print response
 
+    # ===
+    def get_nick(self, user_id):
+        try:
+            return self.users[user_id][u'name']
+        except TypeError:
+            return None
+
+    def get_user_im(self, name):
+        return next((u[u'im'] for u in self.users.itervalues() if u[u'name'] == name), None)
+
+    def get_channel_id(self, name):
+        return next((c[u'id'] for c in self._channels if c[u'name'] == name), None)
+
+    def get_channel_name(self, channel_id):
+        return next((c[u'name'] for c in self._channels if c[u'id'] == channel_id), None)
+
+    # Module methods
     def get_module_path(self, name):
         """Get the path to the module of the given name."""
-        return os.path.join(home, 'modules', '%s.py' % name)
+        return os.path.join(home, 'modules', '{}.py'.format(name))
 
     def find_module_paths(self):
         """Find all the files in /modules/"""
@@ -132,7 +157,7 @@ class SlackBot(object):
             # if hasattr(module, "setup"):
             #     module.setup()
         except Exception as e:
-            print >> sys.stderr, "Error loading %s: %s (in bot.py)" % (name, e)
+            print >> sys.stderr, "Error loading {}: {} (in bot.py)".format(name, e)
             self.commands = cmds  # replace commands' previous state
             if module_cmds is not None:
                 modules.register.load_module(name, module_cmds)  # reload module's previous state
@@ -162,9 +187,15 @@ class SlackBot(object):
         return unregistered_commands
 
 
-frankling = SlackBot()
-
-
-while 1:
-    message = raw_input()
-    frankling.send(message, channel="bot_test")
+if __name__ == "__main__":
+    frankling = SlackBot()
+    channel = config.default_channel
+    while 1:
+        message = raw_input()
+        if message[:1] == "/":
+            command = message.split()
+            if command[0] == "/channel":
+                channel = command[1]
+                print "Set channel to {}.".format(channel)
+        else:
+            frankling.say(message, channel=channel)
