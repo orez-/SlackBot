@@ -1,6 +1,7 @@
 import imp
 import os
 import Queue
+import re
 import sys
 import threading
 import time
@@ -73,6 +74,9 @@ class SlackBot(object):
             username = self.get_nick(incoming[u'user'])
             if username:
                 incoming[u'user_name'] = username
+        if u'<http' in incoming.get(u'text', ''):
+            text = incoming[u'text']
+            incoming[u'text'] = re.sub(r'<(http[^>]+)>', r'\1', text)
 
     def _dispatcher(self):
         """
@@ -157,6 +161,7 @@ class SlackBot(object):
             # if hasattr(module, "setup"):
             #     module.setup()
         except Exception as e:
+            traceback.print_exc()
             print >> sys.stderr, "Error loading {}: {} (in bot.py)".format(name, e)
             self.commands = cmds  # replace commands' previous state
             if module_cmds is not None:

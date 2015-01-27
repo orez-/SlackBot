@@ -3,3 +3,4 @@
 
 # Hide secrets
 config.py
+data/*

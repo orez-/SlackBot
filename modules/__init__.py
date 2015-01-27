@@ -1,4 +1,5 @@
 import functools
+import json
 import re
 import time
 
@@ -88,7 +89,7 @@ class BotCommand(object):
 
             for keyword, replacement in [
                     ("$bot", self.bot.user_name),
-                    ("$@bot", "<@{}>".format(self.bot.user))]:
+                    ("$@bot", r"<@{}>:?".format(self.bot.user))]:
                 rule = rule.replace(keyword, replacement)
 
             self._rule_version = BotCommand.RULE_VERSION
@@ -157,3 +158,20 @@ class register(object):
             return False
         module.remove(command)
         return True
+
+# ===
+# Data methods
+readable_path = 'data/{}.json'
+
+def save_readable(obj, filename, version):
+    with open(readable_path.format(filename), 'w') as f:
+        json.dump({'version': version, 'data': obj}, f)
+
+
+def get_readable(filename):
+    try:
+        with open(readable_path.format(filename)) as f:
+            result = json.load(f)
+        return result['version'], result['data']
+    except IOError:
+        return None, None
