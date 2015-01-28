@@ -1,3 +1,4 @@
+import collections
 import imp
 import os
 import Queue
@@ -29,7 +30,10 @@ class _SlackBotWrapper(object):
 
 class SlackBot(object):
     def __init__(self):
+        self._message_id = int(time.time())
         self._incoming_messages = Queue.Queue()
+        self.pending_outgoing_messages = {}
+        self.previous_messages = collections.deque()
 
         self._slack_api = slack.SlackAPI(self)
         self._slack_api.connect()
@@ -61,10 +65,13 @@ class SlackBot(object):
             return
         channel = self.parse_destination(channel)
         message = dict(
+            id=self._message_id,
             type="message",
             channel=channel,
             text=text,
         )
+        self.pending_outgoing_messages[self._message_id] = {u'text': text, u'channel': channel}
+        self._message_id += 1
         self._slack_api.send(message)
 
     def _format_incoming(self, incoming):

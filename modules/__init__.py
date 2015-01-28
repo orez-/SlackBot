@@ -104,6 +104,12 @@ class BotCommand(object):
         self.bot = bot
         if msg.get('type') not in self.actions:
             return False
+        if self.fields:
+            for name, value in self.fields.iteritems():
+                if name not in msg:
+                    return False
+                if msg[name] != value and value is not any:
+                    return False
         if self.rule is not UNSET:
             return self.rule.match(msg['text'])
         return re.match("", "")

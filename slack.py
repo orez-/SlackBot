@@ -22,9 +22,7 @@ class SlackAPI(object):
         self._listeners.append(listener)
 
     def connect(self):
-        url = "{}rtm.start".format(SlackAPI.API_URL)
-        params = {'token': config.token}
-        self._request_data = requests.post(url, data=params, verify=False).json()
+        self._request_data = self.send_web('rtm.start', {})
         if not self._request_data['ok']:
             raise SlackError(self._request_data['error'])
 
@@ -62,3 +60,8 @@ class SlackAPI(object):
 
     def send(self, payload):
         self._ws.send(json.dumps(payload))
+
+    def send_web(self, message_type, payload):
+        payload = dict(payload)
+        payload.update({'token': config.token})
+        return requests.post(SlackAPI.API_URL + message_type, data=payload, verify=False).json()
