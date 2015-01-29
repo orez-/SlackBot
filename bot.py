@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import collections
 import imp
 import os
@@ -11,6 +13,7 @@ import traceback
 import config
 import modules
 import slack
+import util
 
 home = os.getcwd()
 
@@ -104,11 +107,17 @@ class SlackBot(object):
                         command(_SlackBotWrapper(self, response), response, *match.groups())
                         if command.activations is not False and command.activations <= 0:
                             self.unregister_command(command)
-            except Exception as e:
-                traceback.print_exc()
-                print response
+            except Exception:
+                with util.hilite('red'):
+                    traceback.print_exc()
+                    print(response)
             else:
-                print response
+                try:
+                    if u'_logged' not in response:
+                        with util.hilite('gray'):
+                            print(response)
+                except:
+                    print("Wow something went REAL wrong.")
 
     # ===
     def get_nick(self, user_id):
@@ -168,8 +177,9 @@ class SlackBot(object):
             # if hasattr(module, "setup"):
             #     module.setup()
         except Exception as e:
-            traceback.print_exc()
-            print >> sys.stderr, "Error loading {}: {} (in bot.py)".format(name, e)
+            with util.hilite('red'):
+                traceback.print_exc()
+                print("Error loading {}: {} (in bot.py)".format(name, e), file=sys.stderr)
             self.commands = cmds  # replace commands' previous state
             if module_cmds is not None:
                 modules.register.load_module(name, module_cmds)  # reload module's previous state
@@ -202,12 +212,21 @@ class SlackBot(object):
 if __name__ == "__main__":
     frankling = SlackBot()
     channel = config.default_channel
-    while 1:
-        message = raw_input()
-        if message[:1] == "/":
-            command = message.split()
-            if command[0] == "/channel":
-                channel = command[1]
-                print "Set channel to {}.".format(channel)
-        else:
-            frankling.say(message, channel=channel)
+    try:
+        while 1:
+            message = raw_input()
+            if message[:1] == "/":
+                command = message.split()
+                if command[0] == "/channel":
+                    if len(command) == 1:
+                        print("Currently sending to", end=' ')
+                    else:
+                        channel = command[1]
+                        print("Set channel to", end=' ')
+                    with util.hilite('cyan'):
+                        print(channel, end='')
+                    print(".")
+            else:
+                frankling.say(message, channel=channel)
+    except (EOFError, KeyboardInterrupt):
+        print("\nBe seeing you...")

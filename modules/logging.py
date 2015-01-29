@@ -3,7 +3,7 @@ import modules
 MAX_LOGS = 30
 
 
-@modules.register(actions=[None], fields=dict(reply_to=any))
+@modules.register(actions=[None], fields=dict(reply_to=any), priority=10)
 def acknowledge_received(bot, msg):
     try:
         old_msg = bot.pending_outgoing_messages.pop(msg[u'reply_to'])
@@ -13,7 +13,6 @@ def acknowledge_received(bot, msg):
         print msg[u'error']
         return
 
-    msg = dict(msg)
     msg[u'channel'] = old_msg[u'channel']
     bot.previous_messages.appendleft(msg)
     for _ in xrange(len(bot.previous_messages) - MAX_LOGS):
