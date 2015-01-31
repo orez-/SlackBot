@@ -1,6 +1,9 @@
 import modules
 
 
-@modules.register(rule=r"[Hh]i $@bot")
+@modules.register(rule=r"[Hh]i $@bot!?")
 def say_hello(bot, msg):
-    bot.reply("Hi {}!".format(msg[u'user_name']))
+    """
+    Greet the nice people who say hello to you.
+    """
+    bot.reply("Hi @{}!".format(msg[u'user_name']))

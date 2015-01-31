@@ -111,7 +111,9 @@ class BotCommand(object):
                 if msg[name] != value and value is not any:
                     return False
         if self.rule is not UNSET:
-            return self.rule.match(msg['text'])
+            if u'text' not in msg:
+                return False
+            return self.rule.match(msg[u'text'])
         return re.match("", "")
 
     def __call__(self, bot, msg, *args):
@@ -168,6 +170,7 @@ class register(object):
 # ===
 # Data methods
 readable_path = 'data/{}.json'
+
 
 def save_readable(obj, filename, version):
     with open(readable_path.format(filename), 'w') as f:

@@ -35,6 +35,12 @@ def clean_images(group_name):
 
 @modules.register(rule=[r"$@bot", r"([\w ]+)", r"bomb(?: (\d+))?$"])
 def bomb(bot, msg, group_name, num=None):
+    """
+    Post a deluge of pictures on the given topic.
+
+    Optionally accepts a numeral parameter for the number of pictures
+    to post.
+    """
     images = get_images(group_name)
     if not images:
         bot.reply(

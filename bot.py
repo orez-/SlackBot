@@ -20,8 +20,8 @@ home = os.getcwd()
 
 class _SlackBotWrapper(object):
     def __init__(self, bot, msg):
-        self._bot = bot
-        self._msg = msg
+        object.__setattr__(self, '_bot', bot)
+        object.__setattr__(self, '_msg', msg)
 
     def reply(self, message):
         self.say(message, self._msg[u'channel'])
@@ -30,6 +30,9 @@ class _SlackBotWrapper(object):
         """Default to _bot's methods"""
         return getattr(self._bot, other)
 
+    def __setattr__(self, other, value):
+        raise Exception("Bot may not have properties assigned to it from a module.")
+
 
 class SlackBot(object):
     def __init__(self):
@@ -37,6 +40,8 @@ class SlackBot(object):
         self._incoming_messages = Queue.Queue()
         self.pending_outgoing_messages = {}
         self.previous_messages = collections.deque()
+
+        self.config = {}
 
         self._slack_api = slack.SlackAPI(self)
         self._slack_api.connect()
@@ -71,11 +76,32 @@ class SlackBot(object):
             id=self._message_id,
             type="message",
             channel=channel,
-            text=text,
+            text=self._format_outgoing(text),
         )
         self.pending_outgoing_messages[self._message_id] = {u'text': text, u'channel': channel}
         self._message_id += 1
         self._slack_api.send(message)
+
+    def _format_outgoing(self, msg):
+        msg = re.sub(r"(^| )@(\w+)\b", self._format_user_mention, msg)
+        msg = re.sub(r"(^| )#(\w+)\b", self._format_channel_mention, msg)
+        return msg
+
+    def _format_user_mention(self, match):
+        start, nick = match.groups()
+        user_id = self.get_user_id(nick)
+        if user_id:
+            return "{}<@{}>".format(start, user_id)
+        elif nick in ('channel', 'everyone', 'group'):
+            return "{}<!{}>".format(start, nick)
+        return match.group(0)
+
+    def _format_channel_mention(self, match):
+        start, channel = match.groups()
+        channel_id = self.get_channel_id(channel)
+        if channel_id:
+            return "{}<#{}>".format(start, channel_id)
+        return match.group(0)
 
     def _format_incoming(self, incoming):
         if u'channel' in incoming:
@@ -119,12 +145,18 @@ class SlackBot(object):
                 except:
                     print("Wow something went REAL wrong.")
 
+    def die(self):
+        sys.exit(0)
+
     # ===
     def get_nick(self, user_id):
         try:
             return self.users[user_id][u'name']
         except TypeError:
             return None
+
+    def get_user_id(self, name):
+        return next((u[u'id'] for u in self.users.itervalues() if u[u'name'] == name), None)
 
     def get_user_im(self, name):
         return next((u[u'im'] for u in self.users.itervalues() if u[u'name'] == name), None)
@@ -209,24 +241,46 @@ class SlackBot(object):
         return unregistered_commands
 
 
-if __name__ == "__main__":
-    frankling = SlackBot()
-    channel = config.default_channel
+# ===
+# TODO: This belongs in modules/cli.py, once we have threaded commands
+
+def _channel(bot, command):
+    if len(command) == 1:
+        print("Currently sending to", end=' ')
+    else:
+        bot.config['send_channel'] = command[1]
+        print("Set channel to", end=' ')
+    with util.hilite('cyan'):
+        print(bot.config['send_channel'], end='')
+    print(".")
+
+
+def _show_typing(bot, command):
+    if len(command) < 2:
+        return
+    setting = command[1]
+    bot.config['show_typing'] = setting != '0'
+
+
+def cli_input(bot):
     try:
+        bot.config['send_channel'] = config.default_channel
         while 1:
             message = raw_input()
             if message[:1] == "/":
                 command = message.split()
                 if command[0] == "/channel":
-                    if len(command) == 1:
-                        print("Currently sending to", end=' ')
-                    else:
-                        channel = command[1]
-                        print("Set channel to", end=' ')
-                    with util.hilite('cyan'):
-                        print(channel, end='')
-                    print(".")
+                    _channel(bot, command)
+                elif command[0] == "/show_typing":
+                    _show_typing(bot, command)
             else:
-                frankling.say(message, channel=channel)
+                bot.say(message, channel=bot.config['send_channel'])
     except (EOFError, KeyboardInterrupt):
         print("\nBe seeing you...")
+        bot.die()
+# ===
+
+
+if __name__ == "__main__":
+    bot = SlackBot()
+    cli_input(bot)
