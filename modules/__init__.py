@@ -141,7 +141,7 @@ class register(object):
             module_id = fn.__module__.split(".")[-1]
             new_func.module_id = module_id
             register.modules.setdefault(module_id, set()).add(new_func)
-            return new_func
+            return fn
         return decorator
 
     @classmethod
