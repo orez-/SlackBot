@@ -22,6 +22,7 @@ class _SlackBotWrapper(object):
     def __init__(self, bot, msg):
         object.__setattr__(self, '_bot', bot)
         object.__setattr__(self, '_msg', msg)
+        object.__setattr__(self, 'channel', bot.get_channel(msg.get(u'channel')))
 
     def reply(self, message):
         self.say(message, self._msg[u'channel'])
@@ -71,10 +72,11 @@ class SlackBot(object):
     def say(self, text, channel):
         if not text:
             return
+        text = str(text)
         channel = self.parse_destination(channel)
         message = dict(
             id=self._message_id,
-            type="message",
+            type='message',
             channel=channel,
             text=self._format_outgoing(text),
         )
@@ -161,11 +163,20 @@ class SlackBot(object):
     def get_user_im(self, name):
         return next((u[u'im'] for u in self.users.itervalues() if u[u'name'] == name), None)
 
+    def _get_channel(self, conditional, prop=None):
+        return next((c[prop] if prop else c for c in self._channels if conditional(c)), None)
+
+    def get_channel(self, channel_id):
+        return self._get_channel(lambda c: c[u'id'] == channel_id)
+
     def get_channel_id(self, name):
-        return next((c[u'id'] for c in self._channels if c[u'name'] == name), None)
+        return self._get_channel(lambda c: c[u'name'] == name, u'id')
 
     def get_channel_name(self, channel_id):
-        return next((c[u'name'] for c in self._channels if c[u'id'] == channel_id), None)
+        return self._get_channel(lambda c: c[u'id'] == channel_id, u'name')
+
+    def get_channel_members(self, channel_id):
+        return self._get_channel(lambda c: c[u'id'] == channel_id, u'members')
 
     # Module methods
     def get_module_path(self, name):

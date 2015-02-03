@@ -1,6 +1,7 @@
 import functools
 import json
 import re
+import threading
 import time
 
 
@@ -21,7 +22,7 @@ class BotCommand(object):
     def __init__(
             self, fn,
             rule=UNSET, actions=["message"], priority=0, sender=None,
-            ttl=False, activations=False, fields=None):
+            ttl=False, activations=False, threaded=False, fields=None):
         self._fn = fn
 
         self._rule = rule  # unmodified base rule, for reference
@@ -42,6 +43,8 @@ class BotCommand(object):
             self.activations = int(activations)
         else:
             self.activations = False
+
+        self.threaded = threaded
 
         self.fields = fields or {}
         functools.update_wrapper(self, fn)
@@ -120,7 +123,12 @@ class BotCommand(object):
         """Run the command's function."""
         if self.activations:
             self.activations -= 1
-        return self._fn(bot, msg, *args)
+        if self.threaded:
+            t = threading.Thread(target=self._fn, args=(bot, msg) + args)
+            t.setDaemon(True)
+            t.start()
+        else:
+            return self._fn(bot, msg, *args)
 
     def __repr__(self):
         return self._fn.__name__

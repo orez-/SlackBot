@@ -1,12 +1,10 @@
 from __future__ import print_function
 
-import HTMLParser
-import re
+import functools
+import traceback
 
 import modules
 import util
-
-html = HTMLParser.HTMLParser()
 
 
 # CLI Display methods.
@@ -16,14 +14,6 @@ def _log_message(bot, channel, user, text):
     with util.hilite('purple'):
         print(user, end=' ')
     print(_format_text(bot, text))
-
-
-def _format_text(bot, text):
-    text = re.sub(r'<@(\w+)>', lambda match: _format_user(bot, match), text)
-    text = re.sub(r'<#(\w+)>', lambda match: _format_channel(bot, match), text)
-    text = re.sub(r'<!(\w+)>', _format_keyping, text)
-    # Make sure this step is last.
-    return html.unescape(text)
 
 
 def _format_user(bot, match):
@@ -44,11 +34,28 @@ def _format_channel(bot, match):
     return match.group(0)
 
 
-def _format_keyping(match):
-    keyping, = match.groups()
-    if keyping in ('channel', 'everyone', 'group'):
-        return util.hilite_string('cyan', "@{}\a".format(keyping))
+def _format_notice(bot, match):
+    notice, = match.groups()
+    if notice in ('channel', 'everyone', 'group'):
+        return util.hilite_string('cyan', "@{}\a".format(notice))
     return match.group(0)
+
+
+def _format_link(bot, match):
+    url, = match.groups()
+    return util.hilite_string('blue', url)
+
+
+_format_text = functools.partial(
+    util.format_incoming_text,
+    user_fn=_format_user,
+    channel_fn=_format_channel,
+    notice_fn=_format_notice,
+    url_fn=_format_link,
+)
+
+
+# ===
 
 
 @modules.register(rule=r'.*')
