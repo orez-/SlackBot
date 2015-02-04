@@ -55,6 +55,49 @@ _format_text = functools.partial(
 )
 
 
+# CLI outgoing
+def _channel(bot, command):
+    if len(command) == 1:
+        print("Currently sending to", end=' ')
+    else:
+        bot.config['send_channel'] = command[1]
+        print("Set channel to", end=' ')
+    with util.hilite('cyan'):
+        print(bot.config['send_channel'], end='')
+    print(".")
+
+
+def _show_typing(bot, command):
+    if len(command) < 2:
+        return
+    setting = command[1]
+    bot.config['show_typing'] = setting != '0'
+
+
+def _bot(bot, command):
+    print(eval(command[1]))
+
+
+@modules.register(actions=['hello'], threaded=True, hide=True, occludes=False, priority=10)
+def cli_input(bot, msg):
+    while 1:
+        try:
+            message = raw_input()
+            if message[:1] == "/":
+                command = message.split()
+                if command[0] == "/channel":
+                    _channel(bot, command)
+                elif command[0] == "/show_typing":
+                    _show_typing(bot, command)
+                elif command[0] == "/bot":
+                    _bot(bot, command)
+            else:
+                bot.say(message, channel=bot.config['send_channel'])
+        except:
+            with util.hilite('red'):
+                print("Error on output:")
+                traceback.print_exc()
+
 # ===
 
 

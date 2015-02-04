@@ -252,46 +252,14 @@ class SlackBot(object):
         return unregistered_commands
 
 
-# ===
-# TODO: This belongs in modules/cli.py, once we have threaded commands
-
-def _channel(bot, command):
-    if len(command) == 1:
-        print("Currently sending to", end=' ')
-    else:
-        bot.config['send_channel'] = command[1]
-        print("Set channel to", end=' ')
-    with util.hilite('cyan'):
-        print(bot.config['send_channel'], end='')
-    print(".")
-
-
-def _show_typing(bot, command):
-    if len(command) < 2:
-        return
-    setting = command[1]
-    bot.config['show_typing'] = setting != '0'
-
-
-def cli_input(bot):
-    try:
-        bot.config['send_channel'] = config.default_channel
-        while 1:
-            message = raw_input()
-            if message[:1] == "/":
-                command = message.split()
-                if command[0] == "/channel":
-                    _channel(bot, command)
-                elif command[0] == "/show_typing":
-                    _show_typing(bot, command)
-            else:
-                bot.say(message, channel=bot.config['send_channel'])
-    except (EOFError, KeyboardInterrupt):
-        print("\nBe seeing you...")
-        bot.die()
-# ===
-
-
 if __name__ == "__main__":
     bot = SlackBot()
-    cli_input(bot)
+    bot.config['send_channel'] = config.default_channel
+
+    try:
+        while 1:
+            pass
+    except (EOFError, KeyboardInterrupt):
+        pass
+    print("\nBe seeing you ...")
+    bot.die()

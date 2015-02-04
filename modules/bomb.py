@@ -55,12 +55,16 @@ def bomb(bot, msg, group_name, num=None):
         bot.reply('\n'.join(random.sample(images, count)))
 
 
-@modules.register(rule=[
+@modules.register(name="add-bomb", rule=[
     r"$@bot", r"add",
     r"([\w ]+?)(?: +(?:pic|picture|image|bomb)|,)",
     r"([^ ]+)$",
 ])
 def add_bomb(bot, msg, group_name, url):
+    """
+    Add an image to the specified category, to be invoked with
+    `@bot: [category] bomb`.
+    """
     bomb = get_images(group_name)
     if url in bomb:
         return bot.reply("I already have that image!")
@@ -69,12 +73,16 @@ def add_bomb(bot, msg, group_name, url):
     bot.reply("Added.")
 
 
-@modules.register(rule=[
+@modules.register(name="remove-bomb", rule=[
     r"$@bot", r"remove",
     r"([\w ]+?)(?: +(?:pic|picture|image|bomb)|,)",
     r"([^ ]+)$",
 ])
 def remove_bomb(bot, msg, group_name, url):
+    """
+    Remove an image from the specified category. It will no longer
+    appear with `@bot: [category] bomb`.
+    """
     bomb = get_images(group_name)
     try:
         bomb.remove(url)
@@ -89,5 +97,10 @@ def remove_bomb(bot, msg, group_name, url):
 
 @modules.register(rule=r"$@bot show bombs$")
 def show_bombs(bot, msg):
+    """
+    Display all the different categories of image bombs.
+
+    For more information see `foo-bomb`.
+    """
     bombs = get_images()
     bot.reply(", ".join(bombs))
