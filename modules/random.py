@@ -112,9 +112,18 @@ class SequenceList(object):
                 return elem[index]
         raise IndexError
 
-    def add(self, value):
-        self.list.append(value)
-        self.len += len(value)
+    def __iter__(self):
+        for subsequence in self.list:
+            for elem in subsequence:
+                yield elem
+
+    def append(self, value):
+        self.list.append([value])
+        self.len += 1
+
+    def extend(self, sequence):
+        self.list.append(sequence)
+        self.len += len(sequence)
 
 
 def _parse_shuffle_set(bot, shuffle_string):
@@ -143,13 +152,13 @@ def _parse_shuffle_set(bot, shuffle_string):
                     error_list.append(
                         "{}: first digit must not be larger than second.".format(elem))
                 else:
-                    shuffle_list.add(xrange(one, two + 1))
+                    shuffle_list.extend(xrange(one, two + 1))
             continue
         elif elem in ("<!channel>", "<!group>"):
             # If you're currently in a channel, consider this a range
             # of all people in that channel.
             if bot.channel:
-                shuffle_list.add([
+                shuffle_list.extend([
                     "@{}".format(bot.get_nick(uid))
                     for uid in bot.channel[u'members']
                 ])
@@ -158,9 +167,11 @@ def _parse_shuffle_set(bot, shuffle_string):
             else:
                 elem = "@{}".format(elem[2:-1])
 
-        if len(shuffle_components) != 1:
-            elem = [elem]
-        shuffle_list.add(elem)
+        if len(shuffle_components) == 1:
+            # If this word the only element, use its characters.
+            shuffle_list.extend(elem)
+        else:
+            shuffle_list.append(elem)
 
     if error_list:
         return False, error_list
