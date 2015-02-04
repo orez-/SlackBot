@@ -33,7 +33,7 @@ def clean_images(group_name):
         del images[group_name]
 
 
-@modules.register(rule=[r"$@bot", r"([\w ]+)", r"bomb(?: (\d+))?$"])
+@modules.register(rule=[r"$@bot", r"([\w ]+)", r"bomb(?: (\d+))?$"], name="foo-bomb")
 def bomb(bot, msg, group_name, num=None):
     """
     Post a deluge of pictures on the given topic.

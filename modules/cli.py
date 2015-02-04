@@ -101,7 +101,7 @@ def cli_input(bot, msg):
 # ===
 
 
-@modules.register(rule=r'.*')
+@modules.register(rule=r'.*', hide=True, occludes=False, priority=10)
 def log_message(bot, msg):
     """
     Print to the terminal a message that someone has written.
@@ -110,7 +110,8 @@ def log_message(bot, msg):
     _log_message(bot, msg[u'channel_name'], msg[u'user_name'], msg[u'text'])
 
 
-@modules.register(actions=[None], fields=dict(reply_to=any))
+@modules.register(
+    actions=[None], hide=True, occludes=False, fields=dict(reply_to=any), priority=10)
 def log_received(bot, msg):
     """
     Print to the terminal a message the bot has said.
@@ -119,7 +120,7 @@ def log_received(bot, msg):
     _log_message(bot, bot.get_channel_name(msg[u'channel']), bot.user_name, msg[u'text'])
 
 
-@modules.register(actions=['user_typing'])
+@modules.register(actions=['user_typing'], occludes=False, hide=True, priority=10)
 def log_typing(bot, msg):
     """
     Print to the terminal that a user is typing.
@@ -136,7 +137,7 @@ def log_typing(bot, msg):
                 print('{} is typing to you.'.format(msg[u'user_name']))
 
 
-@modules.register(actions=['presence_change'])
+@modules.register(actions=['presence_change'], occludes=False, hide=True, priority=10)
 def log_presence_change(bot, msg):
     """
     Print to the terminal that a user has changed presence.
@@ -153,7 +154,7 @@ def log_presence_change(bot, msg):
         print(".")
 
 
-@modules.register(fields=dict(subtype='message_changed'))
+@modules.register(fields=dict(subtype='message_changed'), occludes=False, hide=True, priority=10)
 def log_message_changed(bot, msg):
     """
     Print to the terminal that a user's message has been edited.

@@ -3,7 +3,8 @@ import modules
 MAX_LOGS = 30
 
 
-@modules.register(actions=[None], fields=dict(reply_to=any), priority=10)
+@modules.register(
+    actions=[None], fields=dict(reply_to=any), priority=10, hide=True, occludes=False)
 def acknowledge_received(bot, msg):
     """
     Acknowledge the server's acknowledgement of message delivery.

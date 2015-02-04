@@ -1,4 +1,5 @@
 import functools
+import inspect
 import json
 import re
 import threading
@@ -22,7 +23,11 @@ class BotCommand(object):
     def __init__(
             self, fn,
             rule=UNSET, actions=["message"], priority=0, sender=None,
-            ttl=False, activations=False, threaded=False, fields=None):
+            ttl=False, activations=False, name=None, threaded=False,
+            hide=False, occludes=True, occludable=True, fields=None):
+        """
+        TODO: This needs documentation like real badly.
+        """
         self._fn = fn
 
         self._rule = rule  # unmodified base rule, for reference
@@ -45,7 +50,9 @@ class BotCommand(object):
             self.activations = False
 
         self.threaded = threaded
-
+        self.hide = hide
+        self.occludes = occludes
+        self.occludable = occludable
         self.fields = fields or {}
         functools.update_wrapper(self, fn)
 
@@ -107,6 +114,8 @@ class BotCommand(object):
         self.bot = bot
         if msg.get('type') not in self.actions:
             return False
+        if self.occludable and u'occluded' in msg:
+            return False
         if self.fields:
             for name, value in self.fields.iteritems():
                 if name not in msg:
@@ -123,6 +132,8 @@ class BotCommand(object):
         """Run the command's function."""
         if self.activations:
             self.activations -= 1
+        if self.occludes:
+            msg[u'occluded'] = True
         if self.threaded:
             t = threading.Thread(target=self._fn, args=(bot, msg) + args)
             t.setDaemon(True)
@@ -145,7 +156,13 @@ class register(object):
             new_func = BotCommand(fn, *args, **kwargs)
             new_func.registered = True
             if 'name' in kwargs:
-                new_func.__name__ = kwargs['name']
+                new_func.name = kwargs['name']
+            else:
+                new_func.name = new_func.__name__.replace('_', ' ').strip()
+            new_func.full_help = inspect.getdoc(new_func)
+            new_func.help = None
+            if new_func.full_help is not None:
+                new_func.help = new_func.full_help.split("\n\n", 1)[0]
             module_id = fn.__module__.split(".")[-1]
             new_func.module_id = module_id
             register.modules.setdefault(module_id, set()).add(new_func)

@@ -7,7 +7,7 @@ import modules
 
 
 @modules.register(rule=r"$@bot anagram (.+)")
-@modules.register(rule=r"$@bot nag a ram (.+)")
+@modules.register(rule=r"$@bot nag a ram (.+)", hide=True)
 def anagram(bot, msg, to_anagram):
     """
     Respond with a clever anagram of the given text.
