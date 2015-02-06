@@ -173,3 +173,32 @@ def log_message_changed(bot, msg):
         bot.get_nick(message[u'user']),
         message[u'text'],
     )
+
+
+@modules.register(actions=['star_added'], occludes=False, hide=True, priority=10)
+def log_starred(bot, msg):
+    msg[u'_logged'] = True
+    item = msg[u'item']
+    message = item[u'message']
+    with util.hilite('yellow'):
+        print(msg[u'user_name'], end=" starred ")
+    _log_message(
+        bot,
+        bot.get_channel_name(item[u'channel']),
+        bot.get_nick(message[u'user']),
+        message[u'text'],
+    )
+
+
+@modules.register(actions=['star_removed'], occludes=False, hide=True, priority=10)
+def log_unstarred(bot, msg):
+    msg[u'_logged'] = True
+    item = msg[u'item']
+    message = item[u'message']
+    print(msg[u'user_name'], end=" unstarred ")
+    _log_message(
+        bot,
+        bot.get_channel_name(item[u'channel']),
+        bot.get_nick(message[u'user']),
+        message[u'text'],
+    )
