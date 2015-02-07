@@ -6,8 +6,8 @@ import urllib
 import modules
 
 
-@modules.register(rule=r"$@bot are the trains fucked?")
-def ismytrainfucked(bot, msg):
+@modules.register(rule=r"$@bot are the trains fucked\?")
+def are_the_trains_fucked(bot, msg):
     """
     Respond with the latest from ismytrainfucked.com
 
