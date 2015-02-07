@@ -98,8 +98,10 @@ class BotCommand(object):
                 raise ValueError("invalid rule format")
 
             for keyword, replacement in [
-                    ("$bot", self.bot.user_name),
-                    ("$@bot", r"<@{}>:?".format(self.bot.user))]:
+                    (r"$bot", self.bot.user_name),
+                    (r"$@bot", r"<@{}>:?".format(self.bot.user)),
+                    (r"$yes", r"(?:yes|yup|yeah|uh huh)"),
+                    (r"$no", r"(?:nope|no|nah|nuh uh)")]:
                 rule = rule.replace(keyword, replacement)
 
             self._rule_version = BotCommand.RULE_VERSION

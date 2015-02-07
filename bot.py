@@ -72,7 +72,7 @@ class SlackBot(object):
     def say(self, text, channel):
         if not text:
             return
-        text = str(text)
+        text = unicode(text)
         channel = self.parse_destination(channel)
         message = dict(
             id=self._message_id,
