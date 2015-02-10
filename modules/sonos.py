@@ -2,8 +2,12 @@
 
 import collections
 import functools
+import urllib
 
+import requests
 import soco
+import soco.data_structures
+import soco.plugins.spotify as spot
 
 import modules
 
@@ -24,6 +28,20 @@ def _sonos_refresh():
 
 
 _sonos_refresh()
+
+
+class Spotify(soco.plugins.spotify.Spotify):
+    def find_track(self, track_name):
+        track_name = urllib.quote(track_name.encode('utf8'), '')
+        data = requests.get("https://api.spotify.com/v1/search?type=track&q={}".format(track_name))
+        return data.json()['tracks']['items']
+
+
+class SpotifyTrack(soco.plugins.spotify.SpotifyTrack):
+    @property
+    def uri(self):
+        uri = super(SpotifyTrack, self).uri
+        return uri + "?sid=12"
 
 
 def play_state(speaker):
@@ -116,6 +134,32 @@ def sonos_play(bot, msg, speaker):
     bot.reply(format_track_info(speaker))
 
 
+@modules.register(rule=r"$@bot sonos play (.*)$", hide=True)
+@get_speaker
+def sonos_play_track(bot, msg, speaker, track_name):
+    spotify = Spotify(speaker)
+
+    track_data = spotify.find_track(track_name)[0]
+
+    # THIS WORKS: DO NOT TOUCH
+    track = SpotifyTrack(track_data['uri'])
+
+    track.title = track_data['name']
+    track.album_uri = track_data['album']['uri']
+    track.data['didl_metadata'] = track.didl_metadata
+    spotify.add_track_to_queue(track)
+
+    if play_state(speaker) == 'PLAYING':
+        bot.reply("Song queued.")
+    else:
+        speaker.play()
+        bot.reply(format_track_info(speaker))
+
+    # THIS IS A TEST: FEEL FREE TO TOUCH
+    # print speaker.add_uri_to_queue("x-sonos-spotify:{}?sid=12&flags=32".format(
+    #     track_data['uri'].replace(":", "%3a")))
+
+
 @modules.register(rule=r"$@bot sonos pause")
 @get_speaker
 def sonos_pause(bot, msg, speaker):
@@ -132,6 +176,12 @@ def sonos_stop(bot, msg, speaker):
     Stop playback of the Sonos system.
     """
     speaker.stop()
+
+
+@modules.register(rule=r"$@bot sonos play mode")
+@get_speaker
+def sonos_play_mode(bot, msg, speaker):
+    pass
 
 
 @modules.register(rule=r"$@bot sonos refresh")

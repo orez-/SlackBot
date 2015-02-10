@@ -94,7 +94,7 @@ def format_incoming_text(bot, text, user_fn=r'\g<0>', channel_fn=r'\g<0>',
         fn if isinstance(fn, basestring) else (lambda fn: lambda match: fn(bot, match))(fn)
         for fn in (user_fn, channel_fn, notice_fn, url_fn)
     )
-    text = re.sub(r'<@(\w+)>', _user_fn, text)
+    text = re.sub(r'<@(\w+)(?:\|\w+)?>', _user_fn, text)
     text = re.sub(r'<#(\w+)>', _channel_fn, text)
     text = re.sub(r'<!(\w+)>', _notice_fn, text)
     text = re.sub(r'<([^@#!].*)>', _url_fn, text)
