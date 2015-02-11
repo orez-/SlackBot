@@ -29,6 +29,16 @@ def acknowledge_received(bot, msg):
         bot.previous_messages.pop()
 
 
+@modules.register(actions=['team_join', 'user_change'], hide=True, occludes=False)
+def update_user(bot, msg):
+    """
+    When a user joins the team, the bot needs to know about them so it
+    can respond appropriately.
+    """
+    user = msg[u'user']
+    bot.users[user[u'id']] = user
+
+
 @modules.register(rule=[r"$@bot", r"redact"])
 def redact(bot, msg):
     """

@@ -177,28 +177,52 @@ def log_message_changed(bot, msg):
 
 @modules.register(actions=['star_added'], occludes=False, hide=True, priority=10)
 def log_starred(bot, msg):
-    msg[u'_logged'] = True
     item = msg[u'item']
-    message = item[u'message']
-    with util.hilite('yellow'):
-        print(msg[u'user_name'], end=" starred ")
-    _log_message(
-        bot,
-        bot.get_channel_name(item[u'channel']),
-        bot.get_nick(message[u'user']),
-        message[u'text'],
-    )
+    if item[u'type'] == 'message':
+        msg[u'_logged'] = True
+        message = item[u'message']
+        with util.hilite('yellow'):
+            print(msg[u'user_name'], end=" starred ")
+        _log_message(
+            bot,
+            bot.get_channel_name(item[u'channel']),
+            bot.get_nick(message[u'user']),
+            message[u'text'],
+        )
+    elif item[u'type'] == 'channel':
+        msg[u'_logged'] = True
+        channel = item[u'channel']
+        with util.hilite('yellow'):
+            print(msg[u'user_name'], end=" starred ")
+        with util.hilite('purple'):
+            print(bot.get_channel_name(channel))
 
 
 @modules.register(actions=['star_removed'], occludes=False, hide=True, priority=10)
 def log_unstarred(bot, msg):
-    msg[u'_logged'] = True
     item = msg[u'item']
-    message = item[u'message']
-    print(msg[u'user_name'], end=" unstarred ")
-    _log_message(
-        bot,
-        bot.get_channel_name(item[u'channel']),
-        bot.get_nick(message[u'user']),
-        message[u'text'],
-    )
+    if item[u'type'] == 'message':
+        msg[u'_logged'] = True
+        message = item[u'message']
+        print(msg[u'user_name'], end=" unstarred ")
+        _log_message(
+            bot,
+            bot.get_channel_name(item[u'channel']),
+            bot.get_nick(message[u'user']),
+            message[u'text'],
+        )
+    elif item[u'type'] == 'channel':
+        msg[u'_logged'] = True
+        channel = item[u'channel']
+        print(msg[u'user_name'], end=" unstarred ")
+        with util.hilite('purple'):
+            print(bot.get_channel_name(channel))
+
+
+@modules.register(actions=['team_join'], hide=True, occludes=False, priority=10)
+def log_new_user(bot, msg):
+    msg[u'_logged'] = True
+    user = msg[u'user']
+    with util.hilite('cyan'):
+        print(user[u'name'], end=" ")
+    print("({}) has joined the team!".format(user[u'real_name']))
