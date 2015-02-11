@@ -1,6 +1,9 @@
+import bisect
+import collections
 from math import log as ln, pi, e
 import random
 import re
+import time
 
 import modules
 import util
@@ -239,5 +242,79 @@ def choose(bot, msg, choose_string):
     bot.reply(" {}".format(random.choice(choose_list)))
 
 
-if __name__ == '__main__':
-    print __doc__.strip()
+# ===
+# Markov chain stuff.
+
+class MarkovData(object):
+    _data = {}
+
+    def __init__(self, token):
+        self.token = token
+        self._next_tokens = []
+        self._next_odds = []
+        type(self)._data[token] = self
+
+    def random_token(self):
+        ishdex = random.randint(0, self._next_odds[-1])
+        index = bisect.bisect_left(self._next_odds, ishdex)
+        return type(self).get(self._next_tokens[index])
+
+    def add_next_token(self, token, probability):
+        self._next_tokens.append(token)
+        if self._next_odds:
+            probability += self._next_odds[-1]
+        self._next_odds.append(probability)
+
+    def __nonzero__(self):
+        return bool(self.token)
+
+    @classmethod
+    def get(cls, token):
+        return cls._data[token]
+
+
+def get_markov_generator(filename):
+    token_list = collections.defaultdict(collections.Counter)
+
+    class cls(MarkovData):
+        _data = {}
+
+    print "Parsing data from file..."
+    with open(filename) as f:
+        for line in f:
+            line = line[line.index("\t") + 1:].split()
+            for word, next_word in zip([None] + line, line + [None]):
+                token_list[word][next_word] += 1
+    print "Parsed data, formatting..."
+    for text, next_tokens in token_list.iteritems():
+        token = cls(text)
+        for next_text, probability in next_tokens.iteritems():
+            token.add_next_token(next_text, probability)
+    print "Formatted!"
+
+    def markov():
+        token = cls.get(None).random_token()
+        while token:
+            yield token.token
+            token = token.random_token()
+    return lambda: u' '.join(markov())
+
+
+markov = None
+
+
+@modules.register(actions=['hello'], occludes=False, priority=10, threaded=True)
+def load_markov(bot, msg):
+    global markov
+    markov = get_markov_generator('data/hugs.final')
+
+
+@modules.register(rule=r"$@bot wtf")
+def group_hug(bot, msg):
+    t = time.time()
+    while not markov and time.time() < t + 3:
+        time.sleep(0.5)
+    if markov:
+        bot.reply(u"> {}".format(markov()))
+    else:
+        bot.reply("Could not load training set.")
