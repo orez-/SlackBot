@@ -27,6 +27,7 @@ def help(bot, msg, query):
 
 
 @modules.register(rule=r'$@bot man(?: (\w.*))?', priority=-10)
+@modules.register(rule=r'$@bot mansplain(?: (\w.*))?', priority=-10, hide=True)
 def man(bot, msg, query):
     """
     Get the full documentation for a command.

@@ -303,13 +303,13 @@ def get_markov_generator(filename):
 markov = None
 
 
-@modules.register(actions=['hello'], occludes=False, priority=10, threaded=True)
+@modules.register(actions=['hello'], occludes=False, priority=10, threaded=True, hide=True)
 def load_markov(bot, msg):
     global markov
     markov = get_markov_generator('data/hugs.final')
 
 
-@modules.register(rule=r"$@bot wtf")
+@modules.register(rule=r"$@bot wtf", name="wtf")
 def group_hug(bot, msg):
     t = time.time()
     while not markov and time.time() < t + 3:
