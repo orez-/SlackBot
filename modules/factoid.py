@@ -1,10 +1,10 @@
 import collections
-import HTMLParser
 import json
 import os
 import re
 
 import modules
+import util
 
 factoids = None
 
@@ -84,11 +84,13 @@ def set_factoid(bot, msg, key, verb, value):
     `@bot: [key] is <reply>[value]` to have the bot respond with only the
     value instead of repeating "[key] is".
     """
-    value = HTMLParser.HTMLParser().unescape(value)
+    key = util.flatten_incoming_text(bot, key)
+    value = util.flatten_incoming_text(bot, value)
+
     factoid = Factoid(key=key, verb=verb, value=value, reply=False)
 
     if value.startswith('<reply>'):
-        factoid.value = re.sub('^<reply>\s*', '', value)
+        factoid.value = re.sub(r'^<reply>\s*', '', value)
         factoid.reply = True
 
     factoids[key] = factoid
@@ -100,6 +102,7 @@ def get_factoid(bot, msg, key):
     """
     Get a factoid. Invoked with `foo?` or `foo!` for a factoid named foo.
     """
+    key = util.flatten_incoming_text(bot, key)
     if key in factoids:
         bot.reply(factoids[key])
 
@@ -109,6 +112,7 @@ def forget_factoid(bot, msg, key):
     """
     Forget a factoid. Invoked with `@bot: forget foo` for a factoid named foo.
     """
+    key = util.flatten_incoming_text(bot, key)
     try:
         del factoids[key]
         bot.reply('ok')
