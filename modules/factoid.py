@@ -73,7 +73,7 @@ def load_factoids(bot, msg):
     factoids = FactoidDatabase('data/factoids.json')
 
 
-@modules.register(name="factoid-set", rule=r"$@bot:\s+(.+)\s+(is|are)\s+(.+)")
+@modules.register(name="factoid-set", rule=r"$@bot\s+(.+)\s+(is|are)\s+(.+)")
 def set_factoid(bot, msg, key, verb, value):
     """
     Set a factoid. Invoked with `@bot: [key] is [value]` or
@@ -102,7 +102,7 @@ def get_factoid(bot, msg, key):
         bot.reply(factoids[key])
 
 
-@modules.register(name="factoid-forget", rule=r"$@bot:\s+forget\s+(.+)")
+@modules.register(name="factoid-forget", rule=r"$@bot\s+forget\s+(.+)")
 def forget_factoid(bot, msg, key):
     """
     Forget a factoid. Invoked with `@bot: forget foo` for a factoid named foo.
