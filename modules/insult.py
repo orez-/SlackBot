@@ -1,5 +1,6 @@
-import modules
 import random
+
+import modules
 
 filename = 'word_list'
 word_list = None
@@ -13,7 +14,7 @@ def get_words(word_type):
         if data:
             word_list = data
         else:
-            word_list = {"adjective": [], "noun": []}
+            word_list = {'adjective': [], 'noun': []}
     # Get the desired word list    
     if word_type in ('adjective', 'noun'):
         return word_list[word_type]
@@ -21,27 +22,29 @@ def get_words(word_type):
         return None
 
 def save_words():
-  global word_list
-  modules.save_readable(word_list, filename, version = 1)
+    global word_list
+    modules.save_readable(word_list, filename, version=1)
 
 
-@modules.register(rule=r"$@bot!? insult $(@user)")
+@modules.register(rule=r"$@bot insult $(@user)")
 def insult(bot, msg, user):
     """
     Hurl insults at your teammates.
     """
     user = bot.get_nick(user)
 
-    adjectives = get_words("adjective")
-    nouns = get_words("noun")
+    adjectives = get_words('adjective')
+    nouns = get_words('noun')
 
     if nouns and adjectives:
         adjective = random.choice(adjectives)
         noun = random.choice(nouns)
-        if adjective[0] in "aeiou":
-            bot.reply("@" + user + " is an " + adjective + " " + noun)
-        else:
-            bot.reply("@" + user + " is a " + adjective + " " + noun)
+        bot.reply("@{user} is {article} {adjective} {noun}".format(
+            user=user,
+            article="an" if adjective[0] in "aeiou" else "a",
+            adjective=adjective,
+            noun=noun,
+        ))
     else:
         bot.reply("Shut the fuck up.")
 
@@ -59,6 +62,9 @@ def add_word(bot, msg, word_type, word):
         return
     if word in word_list:
         bot.reply("I already have that word!")
+        return
+    if not word:
+        bot.reply("Nice try wise guy.")
         return
 
     word_list.append(word)
