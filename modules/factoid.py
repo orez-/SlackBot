@@ -48,6 +48,9 @@ class FactoidDatabase(collections.MutableMapping):
     def _make_key(self, key):
         return key.strip().lower()
 
+    def __contains__(self, key):
+        return self._db.__contains__(self._make_key(key))
+
     def __getitem__(self, key):
         return self._db[self._make_key(key)]
 
