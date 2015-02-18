@@ -92,7 +92,7 @@ def set_factoid(bot, msg, key, verb, value):
     bot.reply('ok')
 
 
-@modules.register(name="factoid-get", rule=r"(.+)[!?]")
+@modules.register(name="factoid-get", rule=r"(.+)[!?]", priority=-10)
 def get_factoid(bot, msg, key):
     """
     Get a factoid. Invoked with `foo?` or `foo!` for a factoid named foo.
