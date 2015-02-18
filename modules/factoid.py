@@ -97,7 +97,6 @@ def get_factoid(bot, msg, key):
     """
     Get a factoid. Invoked with `foo?` or `foo!` for a factoid named foo.
     """
-    key = key.strip()
     if key in factoids:
         bot.reply(factoids[key])
 
@@ -107,8 +106,6 @@ def forget_factoid(bot, msg, key):
     """
     Forget a factoid. Invoked with `@bot: forget foo` for a factoid named foo.
     """
-    print 'set_factoid'
-    key = key.strip()
     try:
         del factoids[key]
         bot.reply('ok')
