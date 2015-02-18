@@ -15,7 +15,7 @@ def get_words(word_type):
             word_list = data
         else:
             word_list = {'adjective': [], 'noun': []}
-    # Get the desired word list    
+    # Get the desired word list
     if word_type in ('adjective', 'noun'):
         return word_list[word_type]
     else:
@@ -49,10 +49,10 @@ def insult(bot, msg, user):
         bot.reply("Shut the fuck up.")
 
 
-@modules.register(rule=r"$@bot add (adjective|noun) ([\w ]+)")
+@modules.register(rule=r"$@bot add (adjective|noun) ([\w ,-]+)$")
 def add_word(bot, msg, word_type, word):
     """
-    Add insults to the lists
+    Add insults to the lists.
     """
     word = word.strip()
 
