@@ -101,7 +101,9 @@ class BotCommand(object):
                     (r"$bot", self.bot.user_name),
                     (r"$@bot", r"<@{}>:?".format(self.bot.user)),
                     (r"$yes", r"(?:yes|yup|yeah|uh huh)"),
-                    (r"$no", r"(?:nope|no|nah|nuh uh)")]:
+                    (r"$no", r"(?:nope|no|nah|nuh uh)"),
+                    (r"$@user", r"<@U\w+>:?"),
+                    (r"$(@user)", r"<@(U\w+)>:?")]:
                 rule = rule.replace(keyword, replacement)
 
             self._rule_version = BotCommand.RULE_VERSION
