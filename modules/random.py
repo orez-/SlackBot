@@ -280,11 +280,16 @@ def get_markov_generator(filename):
         _data = {}
 
     print "Parsing data from file..."
-    with open(filename) as f:
-        for line in f:
-            line = line[line.index("\t") + 1:].split()
-            for word, next_word in zip([None] + line, line + [None]):
-                token_list[word][next_word] += 1
+    try:
+        with open(filename) as f:
+            for line in f:
+                line = line[line.index("\t") + 1:].split()
+                for word, next_word in zip([None] + line, line + [None]):
+                    token_list[word][next_word] += 1
+    except IOError:
+        print "Could not open file {}.".format(filename)
+        markov = False
+        return
     print "Parsed data, formatting..."
     for text, next_tokens in token_list.iteritems():
         token = cls(text)
@@ -312,7 +317,7 @@ def load_markov(bot, msg):
 @modules.register(rule=r"$@bot wtf", name="wtf")
 def group_hug(bot, msg):
     t = time.time()
-    while not markov and time.time() < t + 3:
+    while markov is None and time.time() < t + 3:
         time.sleep(0.5)
     if markov:
         bot.reply(u"> {}".format(markov()))

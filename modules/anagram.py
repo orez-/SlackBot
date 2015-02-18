@@ -25,4 +25,4 @@ def anagram(bot, msg, to_anagram):
     if anagram:
         bot.reply(anagram.group(1))
     else:
-        bot.reply("¯\_(ツ)_/¯")
+        bot.reply(u"¯\_(ツ)_/¯")

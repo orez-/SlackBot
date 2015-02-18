@@ -17,6 +17,6 @@ def are_the_trains_fucked(bot, msg):
     if train_status:
         # remove the 'source on github' from response
         train_status = '\n'.join(train_status.split('\n')[:-2])
-        bot.reply("```{}```".format(train_status))
+        bot.reply(u"```{}```".format(train_status))
     else:
-        bot.reply("¯\_(ツ)_/¯")
+        bot.reply(u"¯\_(ツ)_/¯")
