@@ -20,6 +20,7 @@ attrs = {
     'cyan': '36',
 }
 color_code = '\x1b[{}m'.format
+MAX_MESSAGE_LENGTH = 10000
 
 
 @contextlib.contextmanager
@@ -99,7 +100,7 @@ def format_incoming_text(bot, text, user_fn=r'\g<0>', channel_fn=r'\g<0>',
     text = re.sub(r'<!(\w+)>', _notice_fn, text)
     text = re.sub(r'<([^@#!].*)>', _url_fn, text)
     # Make sure this step is last.
-    return html.unescape(text)
+    return unescape(text)
 
 
 def _flatten_user(bot, match):
@@ -130,3 +131,7 @@ def flatten_incoming_text(bot, text, flatten_user=True, flatten_channel=True,
         ] if active
     }
     return format_incoming_text(bot, text, **kwargs)
+
+
+def unescape(text):
+    return html.unescape(text)

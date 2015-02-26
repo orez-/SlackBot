@@ -107,7 +107,7 @@ class BotCommand(object):
                 rule = rule.replace(keyword, replacement)
 
             self._rule_version = BotCommand.RULE_VERSION
-            self._compiled_rule = re.compile(rule)
+            self._compiled_rule = re.compile(rule, re.DOTALL)
         return self._compiled_rule
 
     def matches(self, bot, msg):

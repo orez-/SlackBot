@@ -11,6 +11,7 @@ import time
 import traceback
 
 import config
+import exception
 import modules
 import slack
 import util
@@ -74,6 +75,8 @@ class SlackBot(object):
             return
         text = unicode(text)
         channel = self.parse_destination(channel)
+        if len(text) > util.MAX_MESSAGE_LENGTH:
+            raise exception.MessageTooLongException
         message = dict(
             id=self._message_id,
             type='message',
