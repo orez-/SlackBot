@@ -92,13 +92,13 @@ def format_incoming_text(bot, text, user_fn=r'\g<0>', channel_fn=r'\g<0>',
     """
     # Wrap functions to allow passing bot and match, while still allowing plain strings.
     _user_fn, _channel_fn, _notice_fn, _url_fn = (
-        fn if isinstance(fn, basestring) else (lambda fn: lambda match: fn(bot, match))(fn)
+        fn if isinstance(fn, basestring) else lambda match, fn_=fn: fn_(bot, match)
         for fn in (user_fn, channel_fn, notice_fn, url_fn)
     )
-    text = re.sub(r'<@(\w+)>', _user_fn, text)
-    text = re.sub(r'<#(\w+)>', _channel_fn, text)
+    text = re.sub(r'<@(\w+)(?:\|[^>]+)?>', _user_fn, text)
+    text = re.sub(r'<#(\w+)(?:\|[^>]+)?>', _channel_fn, text)
     text = re.sub(r'<!(\w+)>', _notice_fn, text)
-    text = re.sub(r'<([^@#!].*)>', _url_fn, text)
+    text = re.sub(r'<([^@#!][^>]*)>', _url_fn, text)
     # Make sure this step is last.
     return unescape(text)
 
@@ -121,6 +121,12 @@ def _flatten_channel(bot, match):
 
 def flatten_incoming_text(bot, text, flatten_user=True, flatten_channel=True,
                           flatten_notice=True, flatten_url=True):
+    """
+    Format incoming text as a client might see it, with no formatting.
+
+    Notably, unescapes user tags and notices into @mentions, channels
+    into #mentions, urls into flat urls, and html into plaintext.
+    """
     kwargs = {
         name: value
         for name, value, active in [

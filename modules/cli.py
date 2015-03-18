@@ -20,7 +20,7 @@ def _format_user(bot, match):
     user_id, = match.groups()
     user = bot.get_nick(user_id)
     if user:
-        if user_id == bot.user:
+        if user_id == bot.user and bot.config['terminal_ping']:
             user = "{}\a".format(user)
         return util.hilite_string('cyan', "@{}".format(user))
     return match.group(0)
@@ -37,7 +37,9 @@ def _format_channel(bot, match):
 def _format_notice(bot, match):
     notice, = match.groups()
     if notice in ('channel', 'everyone', 'group'):
-        return util.hilite_string('cyan', "@{}\a".format(notice))
+        return util.hilite_string('cyan', "@{}{}".format(
+            notice,
+            "\a" if bot.config['terminal_ping'] else ""))
     return match.group(0)
 
 
@@ -67,30 +69,43 @@ def _channel(bot, command):
     print(".")
 
 
-def _show_typing(bot, command):
-    if len(command) < 2:
-        return
-    setting = command[1]
-    bot.config['show_typing'] = setting != '0'
+def _config_boolean(config_id, name, default):
+    def anon(bot, command):
+        if len(command) >= 2:
+            setting = command[1]
+            bot.config[config_id] = setting != '0'
+        with util.hilite('gray'):
+            print(name, end=": ")
+        config_item = bot.config.get(config_id, default)
+        with util.hilite('green' if config_item else 'red'):
+            print(config_item)
+    anon.__name__ = '_{}'.format(config_id)
+    return anon
 
 
 def _bot(bot, command):
     print(eval(command[1]))
 
 
+def _unknown_command(bot, command):
+    with util.hilite('gray'):
+        print("Unknown command '{}'".format(command[0]))
+
+
 @modules.register(actions=['hello'], threaded=True, hide=True, occludes=False, priority=10)
 def cli_input(bot, msg):
+    command_list = {
+        'bot': _bot,
+        'channel': _channel,
+        'show_typing': _config_boolean('show_typing', "Show typing", False),
+        'terminal_ping': _config_boolean('terminal_ping', "Terminal ping", True),
+    }
     while 1:
         try:
             message = raw_input()
             if message[:1] == "/":
                 command = message.split()
-                if command[0] == "/channel":
-                    _channel(bot, command)
-                elif command[0] == "/show_typing":
-                    _show_typing(bot, command)
-                elif command[0] == "/bot":
-                    _bot(bot, command)
+                command_list.get(command[0][1:], _unknown_command)(bot, command)
             else:
                 bot.say(message, channel=bot.config['send_channel'])
         except:

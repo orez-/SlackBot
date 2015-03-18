@@ -258,6 +258,7 @@ class SlackBot(object):
 if __name__ == "__main__":
     bot = SlackBot()
     bot.config['send_channel'] = config.default_channel
+    bot.config['terminal_ping'] = config.terminal_ping
 
     try:
         while 1:
