@@ -3,6 +3,7 @@ import collections
 from math import log as ln, pi, e
 import random
 import re
+import threading
 import time
 
 import modules
@@ -274,6 +275,7 @@ class MarkovData(object):
 
 
 def get_markov_generator(filename):
+    current_thread = threading.current_thread()
     token_list = collections.defaultdict(collections.Counter)
 
     class cls(MarkovData):
@@ -289,6 +291,8 @@ def get_markov_generator(filename):
     except IOError:
         print "Could not open file {}.".format(filename)
         markov = False
+        return
+    if current_thread.stopped():
         return
     print "Parsed data, formatting..."
     for text, next_tokens in token_list.iteritems():

@@ -12,6 +12,7 @@ import traceback
 
 import config
 import exception
+import module_thread
 import modules
 import slack
 import util
@@ -73,7 +74,8 @@ class SlackBot(object):
     def say(self, text, channel):
         if not text:
             return
-        text = unicode(text)
+        if not isinstance(text, unicode):
+            text = unicode(str(text), 'utf8')
         channel = self.parse_destination(channel)
         if len(text) > util.MAX_MESSAGE_LENGTH:
             raise exception.MessageTooLongException
@@ -181,6 +183,9 @@ class SlackBot(object):
     def get_channel_members(self, channel_id):
         return self._get_channel(lambda c: c[u'id'] == channel_id, u'members')
 
+    def get_channel_names(self):
+        return [channel[u'name'] for channel in self._channels]
+
     # Module methods
     def get_module_path(self, name):
         """Get the path to the module of the given name."""
@@ -264,6 +269,7 @@ if __name__ == "__main__":
         while 1:
             pass
     except (EOFError, KeyboardInterrupt):
-        pass
+        print("Press Enter to continue shutdown.")
+        module_thread.join_threads()
     print("\nBe seeing you ...")
     bot.die()

@@ -1,6 +1,9 @@
 from __future__ import print_function
 
 import functools
+import readline
+import sys
+import threading
 import traceback
 
 import modules
@@ -84,7 +87,7 @@ def _config_boolean(config_id, name, default):
 
 
 def _bot(bot, command):
-    print(eval(command[1]))
+    print(eval(' '.join(command[1:])))
 
 
 def _unknown_command(bot, command):
@@ -92,8 +95,42 @@ def _unknown_command(bot, command):
         print("Unknown command '{}'".format(command[0]))
 
 
+def _setup_autocompletion(bot):
+    def completer(text, state):
+        if text.startswith('@'):
+            users = (user[u'name'] for user in bot.users.itervalues())
+            matched = [user for user in users if user.startswith(text[1:])]
+        elif text.startswith('#'):
+            matched = [channel for channel in bot.get_channel_names() if channel.startswith(text[1:])]
+        else:
+            return None
+        try:
+            return text[0] + matched[state] + " "
+        except KeyError:
+            return None
+
+    def show_matches(substitution, matches, longest_match_length):
+        line_buffer = readline.get_line_buffer()
+
+        print()
+        print (' '.join(matches))
+        # print("> ", end="")  # Prefix string
+        print(line_buffer, end="")
+        sys.stdout.flush()
+
+    readline.set_completer_delims(' \t\n;')
+    readline.set_completer(completer)
+    if 'libedit' in readline.__doc__:
+        readline.parse_and_bind("bind ^I rl_complete")
+    else:
+        readline.parse_and_bind("tab: complete")
+    readline.set_completion_display_matches_hook(show_matches)
+
+
 @modules.register(actions=['hello'], threaded=True, hide=True, occludes=False, priority=10)
 def cli_input(bot, msg):
+    current_thread = threading.current_thread()
+    _setup_autocompletion(bot)
     command_list = {
         'bot': _bot,
         'channel': _channel,
@@ -103,6 +140,8 @@ def cli_input(bot, msg):
     while 1:
         try:
             message = raw_input()
+            if current_thread.stopped():
+                return
             if message[:1] == "/":
                 command = message.split()
                 command_list.get(command[0][1:], _unknown_command)(bot, command)

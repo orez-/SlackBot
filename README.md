@@ -14,5 +14,7 @@ Setup's probably the jenkiest part of this whole operation still!
 3. Create the directory `data` in that root as well.
 4. `python bot.py`
 
+Optional: for tab completion in OSX run `[sudo] pip install readline`.
+
 ## Creating Modules
 This section could use a full writeup someday. An extremely basic example can be found in [modules/friendly.py](https://github.com/orez-/SlackBot/blob/master/modules/friendly.py)

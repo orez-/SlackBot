@@ -2,7 +2,7 @@ import functools
 import inspect
 import json
 import re
-import threading
+import module_thread
 import time
 
 
@@ -139,9 +139,7 @@ class BotCommand(object):
         if self.occludes:
             msg[u'occluded'] = True
         if self.threaded:
-            t = threading.Thread(target=self._fn, args=(bot, msg) + args)
-            t.setDaemon(True)
-            t.start()
+            module_thread.StoppableThread(target=self._fn, args=(bot, msg) + args).start()
         else:
             return self._fn(bot, msg, *args)
 
