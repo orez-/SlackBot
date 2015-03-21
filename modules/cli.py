@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import contextlib
 import functools
 import readline
 import sys
@@ -8,6 +9,22 @@ import traceback
 
 import modules
 import util
+
+
+@contextlib.contextmanager
+def autoflush(bot):
+    sys.stdout.write("\r\033[K")  # Clear line.
+    try:
+        yield
+    finally:
+        line_buffer = readline.get_line_buffer()
+        print(get_cli_prefix(bot), end="")  # Prefix string
+        print(line_buffer, end="")
+        sys.stdout.flush()
+
+
+def get_cli_prefix(bot):
+    return "[{}] ".format(util.hilite_string('cyan', bot.config['send_channel']))
 
 
 # CLI Display methods.
@@ -110,13 +127,8 @@ def _setup_autocompletion(bot):
             return None
 
     def show_matches(substitution, matches, longest_match_length):
-        line_buffer = readline.get_line_buffer()
-
-        print()
-        print (' '.join(matches))
-        # print("> ", end="")  # Prefix string
-        print(line_buffer, end="")
-        sys.stdout.flush()
+        with autoflush(bot):
+            print(' '.join(matches))
 
     readline.set_completer_delims(' \t\n;')
     readline.set_completer(completer)
@@ -127,8 +139,18 @@ def _setup_autocompletion(bot):
     readline.set_completion_display_matches_hook(show_matches)
 
 
-@modules.register(actions=['hello'], threaded=True, hide=True, occludes=False, priority=10)
+def _get_debug_fn(bot):
+    def debug_fn(string, color):
+        with autoflush(bot):
+            if color is not None:
+                string = util.hilite_string(color, string)
+            print(string)
+    return debug_fn
+
+
+@modules.register(actions=['hello'], threaded=True, hide=True, occludes=False, priority=100)
 def cli_input(bot, msg):
+    bot.set_debug_fn(_get_debug_fn(bot))
     current_thread = threading.current_thread()
     _setup_autocompletion(bot)
     command_list = {
@@ -139,7 +161,8 @@ def cli_input(bot, msg):
     }
     while 1:
         try:
-            message = raw_input()
+            message = raw_input(get_cli_prefix(bot))
+            print("\033[A\033[K", end='\r')  # Clear the raw_input line.
             if current_thread.stopped():
                 return
             if message[:1] == "/":
@@ -161,7 +184,8 @@ def log_message(bot, msg):
     Print to the terminal a message that someone has written.
     """
     msg[u'_logged'] = True
-    _log_message(bot, msg[u'channel_name'], msg[u'user_name'], msg[u'text'])
+    with autoflush(bot):
+        _log_message(bot, msg[u'channel_name'], msg[u'user_name'], msg[u'text'])
 
 
 @modules.register(
@@ -171,7 +195,8 @@ def log_received(bot, msg):
     Print to the terminal a message the bot has said.
     """
     msg[u'_logged'] = True
-    _log_message(bot, bot.get_channel_name(msg[u'channel']), bot.user_name, msg[u'text'])
+    with autoflush(bot):
+        _log_message(bot, bot.get_channel_name(msg[u'channel']), bot.user_name, msg[u'text'])
 
 
 @modules.register(actions=['user_typing'], occludes=False, hide=True, priority=10)
@@ -184,7 +209,7 @@ def log_typing(bot, msg):
     """
     msg[u'_logged'] = True
     if bot.config.get('show_typing'):
-        with util.hilite('gray'):
+        with autoflush(bot), util.hilite('gray'):
             if msg[u'channel_name']:
                 print('{} is typing in {}.'.format(msg[u'user_name'], msg[u'channel_name']))
             else:
@@ -197,7 +222,7 @@ def log_presence_change(bot, msg):
     Print to the terminal that a user has changed presence.
     """
     msg[u'_logged'] = True
-    with util.hilite('gray'):
+    with autoflush(bot), util.hilite('gray'):
         print('{} is now '.format(msg[u'user_name']), end='')
         color = {
             u'active': 'green',
@@ -218,65 +243,78 @@ def log_message_changed(bot, msg):
     via message_changed.
     """
     msg[u'_logged'] = True
-    with util.hilite('gray'):
-        print("edited", end=" ")
-    message = msg[u'message']
-    _log_message(
-        bot,
-        msg[u'channel_name'],
-        bot.get_nick(message[u'user']),
-        message[u'text'],
-    )
+    with autoflush(bot):
+        with util.hilite('gray'):
+            print("edited", end=" ")
+        message = msg[u'message']
+        _log_message(
+            bot,
+            msg[u'channel_name'],
+            bot.get_nick(message[u'user']),
+            message[u'text'],
+        )
 
 
 @modules.register(actions=['star_added'], occludes=False, hide=True, priority=10)
 def log_starred(bot, msg):
     item = msg[u'item']
-    if item[u'type'] == 'message':
-        msg[u'_logged'] = True
-        message = item[u'message']
-        with util.hilite('yellow'):
-            print(msg[u'user_name'], end=" starred ")
-        _log_message(
-            bot,
-            bot.get_channel_name(item[u'channel']),
-            bot.get_nick(message[u'user']),
-            message[u'text'],
-        )
-    elif item[u'type'] == 'channel':
-        msg[u'_logged'] = True
-        channel = item[u'channel']
-        with util.hilite('yellow'):
-            print(msg[u'user_name'], end=" starred ")
-        with util.hilite('purple'):
-            print(bot.get_channel_name(channel))
+    with autoflush(bot):
+        if item[u'type'] == 'message':
+            msg[u'_logged'] = True
+            message = item[u'message']
+            with util.hilite('yellow'):
+                print(msg[u'user_name'], end=" starred ")
+            _log_message(
+                bot,
+                bot.get_channel_name(item[u'channel']),
+                bot.get_nick(message[u'user']),
+                message[u'text'],
+            )
+        elif item[u'type'] == 'channel':
+            msg[u'_logged'] = True
+            channel = item[u'channel']
+            with util.hilite('yellow'):
+                print(msg[u'user_name'], end=" starred ")
+            with util.hilite('purple'):
+                print(bot.get_channel_name(channel))
 
 
 @modules.register(actions=['star_removed'], occludes=False, hide=True, priority=10)
 def log_unstarred(bot, msg):
     item = msg[u'item']
-    if item[u'type'] == 'message':
-        msg[u'_logged'] = True
-        message = item[u'message']
-        print(msg[u'user_name'], end=" unstarred ")
-        _log_message(
-            bot,
-            bot.get_channel_name(item[u'channel']),
-            bot.get_nick(message[u'user']),
-            message[u'text'],
-        )
-    elif item[u'type'] == 'channel':
-        msg[u'_logged'] = True
-        channel = item[u'channel']
-        print(msg[u'user_name'], end=" unstarred ")
-        with util.hilite('purple'):
-            print(bot.get_channel_name(channel))
+    with autoflush(bot):
+        if item[u'type'] == 'message':
+            msg[u'_logged'] = True
+            message = item[u'message']
+            print(msg[u'user_name'], end=" unstarred ")
+            _log_message(
+                bot,
+                bot.get_channel_name(item[u'channel']),
+                bot.get_nick(message[u'user']),
+                message[u'text'],
+            )
+        elif item[u'type'] == 'channel':
+            msg[u'_logged'] = True
+            channel = item[u'channel']
+            print(msg[u'user_name'], end=" unstarred ")
+            with util.hilite('purple'):
+                print(bot.get_channel_name(channel))
 
 
 @modules.register(actions=['team_join'], hide=True, occludes=False, priority=10)
 def log_new_user(bot, msg):
     msg[u'_logged'] = True
     user = msg[u'user']
-    with util.hilite('cyan'):
-        print(user[u'name'], end=" ")
-    print("({}) has joined the team!".format(user[u'real_name']))
+    with autoflush(bot):
+        with util.hilite('cyan'):
+            print(user[u'name'], end=" ")
+        print("({}) has joined the team!".format(user[u'real_name']))
+
+
+@modules.register(actions=['file_public', 'file_shared'], hide=True, occludes=False, priority=10)
+def log_image(bot, msg):
+    permalink = msg[u'file'].get(u'permalink_public')
+    if permalink:
+        msg[u'_logged'] = True
+        with autoflush(bot), util.hilite('blue'):
+            print(permalink)

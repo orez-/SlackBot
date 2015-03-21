@@ -23,6 +23,7 @@ color_code = '\x1b[{}m'.format
 MAX_MESSAGE_LENGTH = 10000
 
 
+# TODO: This should be interface-specific! This function should live in cli.py
 @contextlib.contextmanager
 def hilite(color):
     """
@@ -80,7 +81,7 @@ def hilite_string(color, string, skip_stack=False):
             outro = attrs[skip_stack]
         else:
             outro = skip_stack
-        return ''.join((color_code(attr), string, color_code(outro)))
+        return ''.join((color_code(attr), str(string), color_code(outro)))
     else:
         return string
 
@@ -141,3 +142,12 @@ def flatten_incoming_text(bot, text, flatten_user=True, flatten_channel=True,
 
 def unescape(text):
     return html.unescape(text)
+
+
+def valid_regex(regex):
+    try:
+        re.compile(regex)
+    except re.error:
+        return False
+    else:
+        return True

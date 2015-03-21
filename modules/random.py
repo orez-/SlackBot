@@ -274,14 +274,14 @@ class MarkovData(object):
         return cls._data[token]
 
 
-def get_markov_generator(filename):
+def get_markov_generator(filename, bot):
     current_thread = threading.current_thread()
     token_list = collections.defaultdict(collections.Counter)
 
     class cls(MarkovData):
         _data = {}
 
-    print "Parsing data from file..."
+    bot.debug("Parsing data from file...")
     try:
         with open(filename) as f:
             for line in f:
@@ -289,17 +289,17 @@ def get_markov_generator(filename):
                 for word, next_word in zip([None] + line, line + [None]):
                     token_list[word][next_word] += 1
     except IOError:
-        print "Could not open file {}.".format(filename)
+        bot.debug("Could not open file {}.".format(filename))
         markov = False
         return
     if current_thread.stopped():
         return
-    print "Parsed data, formatting..."
+    bot.debug("Parsed data, formatting...")
     for text, next_tokens in token_list.iteritems():
         token = cls(text)
         for next_text, probability in next_tokens.iteritems():
             token.add_next_token(next_text, probability)
-    print "Formatted!"
+    bot.debug("Formatted!")
 
     def markov():
         token = cls.get(None).random_token()
@@ -315,7 +315,7 @@ markov = None
 @modules.register(actions=['hello'], occludes=False, priority=10, threaded=True, hide=True)
 def load_markov(bot, msg):
     global markov
-    markov = get_markov_generator('data/hugs.final')
+    markov = get_markov_generator('data/hugs.final', bot)
 
 
 @modules.register(rule=r"$@bot wtf", name="wtf")

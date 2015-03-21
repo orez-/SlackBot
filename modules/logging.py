@@ -20,7 +20,7 @@ def acknowledge_received(bot, msg):
     except KeyError:  # Fine, who needs ya.
         return
     if not msg[u'ok']:
-        print msg[u'error']
+        bot.debug(msg[u'error'])
         return
 
     msg[u'channel'] = old_msg[u'channel']

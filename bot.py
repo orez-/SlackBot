@@ -44,11 +44,15 @@ class SlackBot(object):
         self.pending_outgoing_messages = {}
         self.previous_messages = collections.deque()
 
-        self.config = {}
+        self.config = {
+            'send_channel': config.default_channel,
+            'terminal_ping': config.terminal_ping,
+        }
 
         self._slack_api = slack.SlackAPI(self)
         self._slack_api.connect()
         self._slack_api.start_listening(self._listener)
+        self._debug_fn = None
 
         self.commands = []
         self.load_all_modules()
@@ -141,16 +145,20 @@ class SlackBot(object):
                         if command.activations is not False and command.activations <= 0:
                             self.unregister_command(command)
             except Exception:
-                with util.hilite('red'):
-                    traceback.print_exc()
-                    print(response)
+                self.debug(u'\n'.join([traceback.format_exc(), str(response)]), 'red')
             else:
                 try:
                     if u'_logged' not in response:
-                        with util.hilite('gray'):
-                            print(response)
+                        self.debug(response, 'gray')
                 except:
                     print("Wow something went REAL wrong.")
+
+    def set_debug_fn(self, fn):
+        self._debug_fn = fn
+
+    def debug(self, string, color=None):
+        if self._debug_fn:
+            return self._debug_fn(string, color)
 
     def die(self):
         sys.exit(0)
@@ -228,9 +236,10 @@ class SlackBot(object):
             # if hasattr(module, "setup"):
             #     module.setup()
         except Exception as e:
-            with util.hilite('red'):
-                traceback.print_exc()
-                print("Error loading {}: {} (in bot.py)".format(name, e), file=sys.stderr)
+            self.debug(
+                "{}\nError loading {}: {} (in bot.py)".format(traceback.format_exc(), name, e),
+                'red'
+            )
             self.commands = cmds  # replace commands' previous state
             if module_cmds is not None:
                 modules.register.load_module(name, module_cmds)  # reload module's previous state
@@ -262,14 +271,12 @@ class SlackBot(object):
 
 if __name__ == "__main__":
     bot = SlackBot()
-    bot.config['send_channel'] = config.default_channel
-    bot.config['terminal_ping'] = config.terminal_ping
 
     try:
         while 1:
             pass
     except (EOFError, KeyboardInterrupt):
-        print("Press Enter to continue shutdown.")
+        bot.debug("Press Enter to continue shutdown.")
         module_thread.join_threads()
     print("\nBe seeing you ...")
     bot.die()

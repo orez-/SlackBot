@@ -2,17 +2,11 @@ import functools
 import inspect
 import json
 import re
-import module_thread
 import time
 
+import module_thread
+import util
 
-def valid_regex(regex):
-    try:
-        re.compile(regex)
-    except re.error:
-        return False
-    else:
-        return True
 
 UNSET = object()
 
@@ -66,7 +60,7 @@ class BotCommand(object):
             if isinstance(self._sender, basestring):
                 sender = self._sender
             elif isinstance(self._sender, list):
-                if not all(map(valid_regex, self._sender)):
+                if not all(map(util.valid_regex, self._sender)):
                     raise ValueError("all elements in sender list must be valid regex")
                 sender = "^%s$" % r'|'.join("(?:%s)" % nick for nick in self._sender)
             elif self._sender is None:
@@ -112,9 +106,6 @@ class BotCommand(object):
 
     def matches(self, bot, msg):
         """Determine if the given message should trigger this command."""
-        # If action is PING sender is None, safe to fall through.
-        # if not (msg.sender is None or self.sender.match(msg.sender)):
-        #     return False
         self.bot = bot
         if msg.get('type') not in self.actions:
             return False

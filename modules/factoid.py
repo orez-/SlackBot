@@ -103,7 +103,7 @@ def get_factoid(bot, msg, key):
     Get a factoid. Invoked with `foo?` or `foo!` for a factoid named foo.
     """
     key = util.flatten_incoming_text(bot, key)
-    if key in factoids:
+    if factoids and key in factoids:
         bot.reply(factoids[key])
 
 

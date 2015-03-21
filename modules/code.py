@@ -50,7 +50,7 @@ def code(bot, msg, language, _, code):
         "code": util.flatten_incoming_text(bot, code).encode('utf-8'),
     }
     response = requests.post(uri, data)
-    print response.url
+    bot.debug(response.url)
     _, html = response.content.split("<h2>Program Output</h2>", 1)
     html = html.lstrip()
     html = html[5: html.index("</pre>")]
