@@ -159,6 +159,8 @@ class SlackBot(object):
     def debug(self, string, color=None):
         if self._debug_fn:
             return self._debug_fn(string, color)
+        else:
+            print(string)
 
     def die(self):
         sys.exit(0)

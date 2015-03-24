@@ -258,47 +258,45 @@ def log_message_changed(bot, msg):
 @modules.register(actions=['star_added'], occludes=False, hide=True, priority=10)
 def log_starred(bot, msg):
     item = msg[u'item']
-    with autoflush(bot):
-        if item[u'type'] == 'message':
+    if item[u'type'] in ['message', 'channel', 'file', 'im']:
+        with autoflush(bot):
             msg[u'_logged'] = True
-            message = item[u'message']
             with util.hilite('yellow'):
                 print(msg[u'user_name'], end=" starred ")
-            _log_message(
-                bot,
-                bot.get_channel_name(item[u'channel']),
-                bot.get_nick(message[u'user']),
-                message[u'text'],
-            )
-        elif item[u'type'] == 'channel':
-            msg[u'_logged'] = True
-            channel = item[u'channel']
-            with util.hilite('yellow'):
-                print(msg[u'user_name'], end=" starred ")
-            with util.hilite('purple'):
-                print(bot.get_channel_name(channel))
+            _print_star_info(bot, msg)
 
 
 @modules.register(actions=['star_removed'], occludes=False, hide=True, priority=10)
 def log_unstarred(bot, msg):
     item = msg[u'item']
-    with autoflush(bot):
-        if item[u'type'] == 'message':
+    if item[u'type'] in ['message', 'channel', 'file', 'im']:
+        with autoflush(bot):
             msg[u'_logged'] = True
-            message = item[u'message']
             print(msg[u'user_name'], end=" unstarred ")
-            _log_message(
-                bot,
-                bot.get_channel_name(item[u'channel']),
-                bot.get_nick(message[u'user']),
-                message[u'text'],
-            )
-        elif item[u'type'] == 'channel':
-            msg[u'_logged'] = True
-            channel = item[u'channel']
-            print(msg[u'user_name'], end=" unstarred ")
-            with util.hilite('purple'):
-                print(bot.get_channel_name(channel))
+            _print_star_info(bot, msg)
+
+
+def _print_star_info(bot, msg):
+    item = msg[u'item']
+    if item[u'type'] == 'message':
+        message = item[u'message']
+        _log_message(
+            bot,
+            bot.get_channel_name(item[u'channel']),
+            bot.get_nick(message[u'user']),
+            message[u'text'],
+        )
+    elif item[u'type'] in ('channel', 'im'):
+        channel = item[u'channel']
+        with util.hilite('purple'):
+            print(bot.get_channel_name(channel))
+    elif item[u'type'] == 'file':
+        sent_file = item[u'file']
+        message = sent_file[u'permalink_public']
+        with util.hilite('purple'):
+            print(bot.get_nick(sent_file[u'user']), end=" ")
+        with util.hilite('blue'):
+            print(message)
 
 
 @modules.register(actions=['team_join'], hide=True, occludes=False, priority=10)
