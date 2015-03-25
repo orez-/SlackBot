@@ -188,7 +188,19 @@ class SlackBot(object):
         return self._get_channel(lambda c: c[u'name'] == name, u'id')
 
     def get_channel_name(self, channel_id):
-        return self._get_channel(lambda c: c[u'id'] == channel_id, u'name')
+        channel_name = None
+        if channel_id.startswith('C'):
+            formatter = "#{}".format
+            channel_name = self._get_channel(lambda c: c[u'id'] == channel_id, u'name')
+        elif channel_id.startswith('D'):
+            formatter = "@{}".format
+            channel_name = next((
+                user['name']
+                for user in self.users.itervalues()
+                if user[u'im'] == channel_id), None)
+        if channel_name:
+            channel_name = formatter(channel_name)
+        return channel_name
 
     def get_channel_members(self, channel_id):
         return self._get_channel(lambda c: c[u'id'] == channel_id, u'members')

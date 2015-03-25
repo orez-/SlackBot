@@ -210,7 +210,7 @@ def log_typing(bot, msg):
     msg[u'_logged'] = True
     if bot.config.get('show_typing'):
         with autoflush(bot), util.hilite('gray'):
-            if msg[u'channel_name']:
+            if msg[u'channel_name'].startswith('#'):
                 print('{} is typing in {}.'.format(msg[u'user_name'], msg[u'channel_name']))
             else:
                 print('{} is typing to you.'.format(msg[u'user_name']))

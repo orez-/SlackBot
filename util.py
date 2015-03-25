@@ -116,7 +116,7 @@ def _flatten_channel(bot, match):
     channel_id = match.group(1)
     channel = bot.get_channel_name(channel_id)
     if channel:
-        return "#" + channel
+        return channel
     return match.group(0)
 
 
