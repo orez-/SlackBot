@@ -1,8 +1,9 @@
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 import collections
 import contextlib
 import HTMLParser
+import random
 import re
 import sys
 
@@ -151,3 +152,28 @@ def valid_regex(regex):
         return False
     else:
         return True
+
+
+class RandomizedLeastRecentlyUsed(object):
+    """
+    Container data structure to aggregate elements and return a random
+    one, weighted towards less-chosen elements.
+    """
+    def __init__(self, items, odds=0.50):
+        pre_rlru = list(items)
+        random.shuffle(pre_rlru)
+        self._rlru = collections.deque(pre_rlru)
+        self.odds = odds
+
+    def get_random(self):
+        for i, elem in enumerate(self._rlru):
+            if random.random() < self.odds:
+                del self._rlru[i]
+                self._rlru.append(elem)
+                break
+        # Reached the end without deciding...
+        # just default to the oldest guy.
+        else:
+            elem = self._rlru.popleft()
+            self._rlru.append(elem)
+        return elem

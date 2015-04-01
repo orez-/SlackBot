@@ -93,6 +93,38 @@ class SlackBot(object):
         self._message_id += 1
         self._slack_api.send(message)
 
+    def edit_message(self, timestamp, channel, new_text):
+        """
+        Given the timestamp and channel of a previously sent message,
+        replace the text with the specified new_text.
+        """
+        # TODO: This signature is pretty rough from a usability
+        # standpoint. Maybe abstract away the millisecond timestamp
+        # in favor of message matching? Possibly utilize Slack's PING
+        # functionality??
+        self._slack_api.send_web('chat.update', dict(
+            ts=timestamp,
+            channel=channel,
+            text=new_text,
+        ))
+
+    def open_dm(self, user):
+        """
+        Request a direct message channel a user by @username or user id.
+        """
+        user = self._parse_user_id(user)
+        return self._slack_api.send_web('im.open', dict(user=user))
+
+    def close_dm(self, user):
+        """
+        Request a direct message channel between a user and this bot be
+        closed. NB: Slack seems to ignore this outright.
+        """
+        user = self._parse_user_id(user)
+        dm = self.users[user][u'im']
+        if dm:
+            return self._slack_api.send_web('im.close', dict(channel=dm))
+
     def _format_outgoing(self, msg):
         msg = re.sub(r"(^| )@(\w+)\b", self._format_user_mention, msg)
         msg = re.sub(r"(^| )#(\w+)\b", self._format_channel_mention, msg)
@@ -115,8 +147,10 @@ class SlackBot(object):
         return match.group(0)
 
     def _format_incoming(self, incoming):
-        if u'channel' in incoming:
+        try:
             incoming[u'channel_name'] = self.get_channel_name(incoming[u'channel'])
+        except:
+            pass
         if u'user' in incoming:
             username = self.get_nick(incoming[u'user'])
             if username:
@@ -195,7 +229,7 @@ class SlackBot(object):
         elif channel_id.startswith('D'):
             formatter = "@{}".format
             channel_name = next((
-                user['name']
+                user[u'name']
                 for user in self.users.itervalues()
                 if user[u'im'] == channel_id), None)
         if channel_name:
@@ -207,6 +241,18 @@ class SlackBot(object):
 
     def get_channel_names(self):
         return [channel[u'name'] for channel in self._channels]
+
+    def _parse_user_id(self, user):
+        at_hint = " Perhaps you omitted the '@'?"
+        if user.startswith("@"):
+            at_hint = ""
+            user_id = self.get_user_id(user[1:])
+            if user_id:
+                return user_id
+        elif user.startswith("U"):
+            if user in self.users:
+                return user
+        raise Exception("Could not parse '{}' as user.{}".format(user, at_hint))
 
     # Module methods
     def get_module_path(self, name):

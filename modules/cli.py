@@ -122,7 +122,7 @@ def _setup_autocompletion(bot):
         else:
             return None
         try:
-            return text[0] + matched[state] + " "
+            return u"{}{} ".format(text[0], matched[state])
         except KeyError:
             return None
 

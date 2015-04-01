@@ -1,3 +1,8 @@
+"""
+Bot module to handle bookkeeping on the bot object itself, based on
+messages received from Slack.
+"""
+
 import modules
 
 MAX_LOGS = 30
@@ -39,6 +44,26 @@ def update_user(bot, msg):
     bot.users[user[u'id']] = user
 
 
+@modules.register(actions=['im_open'], hide=True, occludes=False)
+def im_open(bot, msg):
+    """
+    When a direct message channel has been opened between the bot and
+    another user, the bot needs to know that that's the correct way to
+    private message them.
+    """
+    bot.users[msg[u'user']][u'im'] = msg[u'channel']
+
+
+@modules.register(actions=['im_close'], hide=True, occludes=False)
+def im_close(bot, msg):
+    """
+    When a direct message channel has been closed between the bot and
+    another user, the bot needs to know that that's no longer an option
+    private message them.
+    """
+    bot.users[msg[u'user']][u'im'] = None
+
+
 @modules.register(rule=[r"$@bot", r"redact"])
 def redact(bot, msg):
     """
@@ -47,9 +72,8 @@ def redact(bot, msg):
     last_msg = next((m for m in bot.previous_messages if m[u'channel'] == msg[u'channel']), None)
     if not last_msg:
         return
-    # TODO: make this a method, rather than constructing a raw websocket packet.
-    bot._slack_api.send_web('chat.update', dict(
-        ts=last_msg[u'ts'],
+    bot.edit_message(
+        timestamp=last_msg[u'ts'],
         channel=msg[u'channel'],
-        text='REDACTED',
-    ))
+        new_text='REDACTED',
+    )
