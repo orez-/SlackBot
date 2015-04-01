@@ -11,8 +11,7 @@ Setup's probably the jenkiest part of this whole operation still!
  token = "MyToken"
  default_channel = "#general"
  ```
-3. Create the directory `data` in that root as well.
-4. `python bot.py`
+3. `python bot.py`
 
 Optional: for tab completion in OSX run `[sudo] pip install readline`.
 
