@@ -1,6 +1,7 @@
-from __future__ import print_function
+from __future__ import  absolute_import, print_function
 
 import collections
+import hashlib
 import imp
 import os
 import Queue
@@ -282,13 +283,14 @@ class SlackBot(object):
             filename = self.get_module_path(name)
         cmds = self.commands[:]  # backup the commands (in case of failure)
         module_cmds = None
-        if name in modules.register.modules:
+        module_id = self.get_module_id(name)
+        if module_id in modules.register.modules:
             # unload the old module to make room for the new one, but remember it
             # in case something goes wrong when loading the new module.
-            module_cmds = self.unload_module(name)
+            module_cmds = self.unload_module(module_id)
         try:
             # commands are registered automatically
-            module = imp.load_source(name, filename)
+            module = imp.load_source(module_id, filename)
             # # If you decide to use a setup method uncomment this,
             # # although actually it would probably be better as an
             # # explicit decorator. Ones for 'onload', 'onunload',
@@ -297,17 +299,17 @@ class SlackBot(object):
             #     module.setup()
         except Exception as e:
             self.debug(
-                "{}\nError loading {}: {} (in bot.py)".format(traceback.format_exc(), name, e),
+                "{}\nError loading {}: {} (in bot.py)".format(traceback.format_exc(), module_id, e),
                 'red'
             )
             self.commands = cmds  # replace commands' previous state
             if module_cmds is not None:
-                modules.register.load_module(name, module_cmds)  # reload module's previous state
-            elif name in modules.register.modules:  # loaded a couple commands
-                modules.register.unload_module(name)
+                modules.register.load_module(module_id, module_cmds)  # reload module's previous state
+            elif module_id in modules.register.modules:  # loaded a couple commands
+                modules.register.unload_module(module_id)
             return e
         else:
-            commands = modules.register.module(name)
+            commands = modules.register.module(module_id)
             if commands is not None:
                 self.register_commands(commands)
         return None
@@ -327,6 +329,10 @@ class SlackBot(object):
             # TODO: Also binary search here?
             self.commands.remove(command)
         return unregistered_commands
+
+    @staticmethod
+    def get_module_id(name):
+        return "{}_{}".format(name, hashlib.md5(name).hexdigest())
 
 
 if __name__ == "__main__":

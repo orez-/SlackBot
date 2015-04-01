@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+import collections
 import functools
 import inspect
 import json
@@ -142,7 +145,7 @@ class register(object):
     """
     Registers the decorated function as a command of the bot.
     """
-    modules = {}
+    modules = collections.defaultdict(set)
 
     def __new__(cls, *args, **kwargs):
         def decorator(fn):
@@ -158,7 +161,7 @@ class register(object):
                 new_func.help = new_func.full_help.split("\n\n", 1)[0]
             module_id = fn.__module__.split(".")[-1]
             new_func.module_id = module_id
-            register.modules.setdefault(module_id, set()).add(new_func)
+            register.modules[module_id].add(new_func)
             return fn
         return decorator
 
