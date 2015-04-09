@@ -304,7 +304,7 @@ def get_markov_generator(filename, bot):
     def markov():
         token = cls.get(None).random_token()
         while token:
-            yield token.token
+            yield token.token.decode('utf8')
             token = token.random_token()
     return lambda: u' '.join(markov())
 
