@@ -316,3 +316,25 @@ def log_image(bot, msg):
         msg[u'_logged'] = True
         with autoflush(bot), util.hilite('blue'):
             print(permalink)
+
+
+@modules.register(actions=['user_change'], hide=True, occludes=False, priority=10)
+def log_user_change(bot, msg):
+    if msg[u'user'][u'deleted'] is True:
+        msg[u'_logged'] = True
+        with autoflush(bot):
+            with util.hilite('cyan'):
+                print(msg[u'name'], end=" ")
+            print("has left the team.")
+
+
+@modules.register(fields=dict(subtype='message_deleted'), occludes=False, hide=True, priority=10)
+def log_message_delete(bot, msg):
+    msg[u'_logged'] = True
+    with autoflush(bot):
+        with util.hilite('cyan'):
+            _log_message(
+                bot,
+                msg[u'channel_name'], "",
+                util.hilite_string('gray', "Deleted message from {}.".format(msg[u'deleted_ts'])),
+            )
